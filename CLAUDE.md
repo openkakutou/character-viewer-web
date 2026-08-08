@@ -18,11 +18,9 @@ English — all documentation, backlog items, code comments, and other generated
 
 Character data (`.def`/`.sff`/`.air`/`.cns`) is parsed by the `character` Go library (github.com/openkakutou/character), not reimplemented here. This repo consumes it as a WebAssembly module, loaded client-side — no Go toolchain, no server, keeping this project a static site.
 
-As of this writing, `character` has not yet published a WASM build (tracked as backlog item `033-wasm-entrypoint-and-release-pipeline.md` in that repo). Until it does:
-- There is no `.wasm` to download yet.
-- Building locally requires `../character` checked out as a sibling directory and a local Go toolchain (`GOOS=js GOARCH=wasm go build -o public/wasm/character.wasm ./cmd/wasm`, once that entrypoint exists there).
+As of `character` `v0.1.0`, a WASM build (`character.wasm` + `wasm_exec.js`) is published on every tagged release (see `character`'s `.vibe/backlog/done/033-wasm-entrypoint-and-release-pipeline.md`). Item `001-wasm-release-download-script.md` in this repo's own backlog will replace the local-build workaround with a script that downloads the pinned release assets for a specific `character` version tag — no Go toolchain needed in this repo at all. Until that lands, building locally still requires `../character` checked out as a sibling directory and a local Go toolchain (`GOOS=js GOARCH=wasm go build -o public/wasm/character.wasm ./cmd/wasm`). `public/wasm/` is gitignored either way: the artifact is fetched/built, never committed.
 
-Once item 033 ships in `character`, replace the local-build step with a script that downloads the pinned `.wasm` + `wasm_exec.js` release assets for a specific `character` version tag — no Go toolchain needed in this repo at all. `public/wasm/` is gitignored either way: the artifact is fetched/built, never committed.
+The published JSON contract (`OpenKakutouCharacter.load`) currently exposes sprite *metadata* only — no decoded pixel/color data. Rendering actual sprite images (backlog items 005–007) is blocked on `character`'s own item `034-expose-sprite-pixel-resolution-via-wasm.md`.
 
 ## Architecture
 
