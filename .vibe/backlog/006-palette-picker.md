@@ -14,4 +14,4 @@ Let the user choose among a loaded character's available palettes (or supply an 
 - [ ] An invalid/wrong-sized `.act` file shows a clear error instead of crashing or silently ignoring the override
 
 ## Notes
-Uses the same pixel-resolution WASM call as item 005 (sprite browser), with a palette/override parameter — same cross-repo dependency on `character`'s new pixel-export WASM API.
+Uses the same pixel-resolution WASM call as item 005 (sprite browser), with a palette/override parameter. Previously blocked on `character`'s item 034 (Expose Sprite Pixel Resolution Via WASM) — that shipped in `character` v0.2.0, so the cross-repo blocker is resolved.

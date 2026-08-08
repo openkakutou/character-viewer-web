@@ -14,4 +14,4 @@ Let the user browse every sprite group/image in a loaded character and see its a
 - [ ] Large sprite sheets (hundreds of sprites) remain browsable without freezing the UI
 
 ## Notes
-Blocked until `character` exposes a pixel-resolution WASM call (new cross-repo backlog item in `character`, mirroring its existing Go-side `ResolvePixels`/`ResolveV1Palette`/`ResolveV2Palette`). Do not start implementation until that call exists and its JS contract is confirmed.
+Previously blocked on `character`'s item 034 (Expose Sprite Pixel Resolution Via WASM) — that shipped in `character` v0.2.0 (now in `character/.vibe/backlog/done/`), so this item is unblocked.

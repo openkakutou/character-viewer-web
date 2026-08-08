@@ -14,4 +14,4 @@ Play back a loaded character's animations frame by frame, using each frame's res
 - [ ] A frame referencing a blank sprite (`-1,-1` sentinel) renders as an empty/blank frame instead of an error
 
 ## Notes
-Depends on item 005's sprite rendering pipeline (same cross-repo pixel-export blocker in `character`).
+Depends on item 005's sprite rendering pipeline. The former cross-repo blocker — `character`'s item 034 (Expose Sprite Pixel Resolution Via WASM) — shipped in `character` v0.2.0, so nothing upstream blocks this anymore.
