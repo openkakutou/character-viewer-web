@@ -4,11 +4,14 @@
 
 ## Modules
 - [`modules/app.md`](modules/app.md) — application entry point, mounts the app into the DOM
+- [`modules/scripts.md`](modules/scripts.md) — dev-tooling scripts, e.g. downloading the `character` WASM release build
 
 ## Observed patterns
 - TypeScript with `strict`, `noUnusedLocals`, `noUnusedParameters` enabled (`tsconfig.json`)
 - Explicit `.ts` extensions on relative imports (`allowImportingTsExtensions`)
-- Test files co-located with source as `*.test.ts`, using Vitest + jsdom
+- Test files co-located with source as `*.test.ts`/`*.test.mjs`, using Vitest + jsdom
+- Dev-tooling scripts outside the app bundle live in `scripts/` as plain `.mjs` (not bundled/type-checked by `tsc`, whose `include` is scoped to `src/`)
+- CLI-style scripts return an exit code from a testable `main(argv, overrides)` function rather than calling `process.exit` directly, and inject external effects (`fetch`, output dir) as parameters for testability
 
 ## Other context files
 - [`models.md`](models.md) — data models

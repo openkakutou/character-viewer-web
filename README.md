@@ -32,6 +32,12 @@ To update dependencies to their latest allowed versions:
 ```sh
 npm update
 ```
+
+Download a specific version of the `character` library's WebAssembly build (needed once character-loading features are implemented):
+
+```sh
+npm run wasm:download -- v0.1.0
+```
 <!-- vibe:end:install -->
 
 <!-- vibe:begin:usage -->
@@ -67,5 +73,5 @@ npm run lint
 <!-- vibe:end:usage -->
 
 <!-- vibe:begin:docs-index -->
-No additional documentation yet.
+- [docs/development.md](docs/development.md) — local dev setup notes, including how to fetch the `character` library's WebAssembly build and how the test suite runs without real network access.
 <!-- vibe:end:docs-index -->
