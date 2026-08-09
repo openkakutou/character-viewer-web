@@ -73,5 +73,7 @@ npm run lint
 <!-- vibe:end:usage -->
 
 <!-- vibe:begin:docs-index -->
+- [docs/architecture.md](docs/architecture.md) — how the app is put together: the main modules, how a character's files flow through them, and its WebAssembly dependency.
 - [docs/development.md](docs/development.md) — local dev setup notes, including how to fetch the `character` library's WebAssembly build and how the test suite runs without real network access.
+- [docs/testing.md](docs/testing.md) — how the test suite is structured, including how it exercises the real WebAssembly module and works around test-environment quirks.
 <!-- vibe:end:docs-index -->
