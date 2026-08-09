@@ -4,19 +4,22 @@
 
 ## Modules
 - [`modules/app.md`](modules/app.md) — application entry point, builds the app's `web-ui-kit` root frame (toolbar + main content) and mounts it into the DOM
+- [`modules/input.md`](modules/input.md) — gathers a character's 4 required files across any number of picker/drop gestures, validates them, and loads the character through the WASM bridge; also renders the file-picker + drag-and-drop UI
 - [`modules/scripts.md`](modules/scripts.md) — dev-tooling scripts, e.g. downloading the `character` WASM release build
 - [`modules/wasm.md`](modules/wasm.md) — bridge to the `character` WASM module: loads it client-side and exposes a typed `loadCharacter` wrapper plus the `CharacterData` TypeScript vocabulary, returning a typed result instead of throwing
 
 ## Observed patterns
-- The DOM-building logic of the app's root frame is a pure exported function (`renderApp(root, version)`) taking its target element and data as parameters, kept separate from the module-level bootstrap (`querySelector("#app")` + call) — same "inject external effects for testability" shape as the WASM bridge and download script, applied here to DOM construction instead of `fetch`
+- The DOM-building logic of a screen/component is a pure exported function (`renderApp(root, version)`, `renderCharacterFileInput(root, options)`) taking its target element and data/callbacks as parameters, kept separate from the module-level bootstrap — same "inject external effects for testability" shape as the WASM bridge and download script, applied here to DOM construction instead of `fetch`
 - Any app-level visual value (typography hierarchy, spacing) is expressed only through `@openkakutou/web-ui-kit`'s `--wuik-*` CSS custom properties, never a literal px/hex value — see `.vibe/decisions/003-app-shell-adoption-scope.md`
 - TypeScript with `strict`, `noUnusedLocals`, `noUnusedParameters` enabled (`tsconfig.json`)
 - Explicit `.ts` extensions on relative imports (`allowImportingTsExtensions`)
 - Test files co-located with source as `*.test.ts`/`*.test.mjs`, using Vitest + jsdom
 - Dev-tooling scripts outside the app bundle live in `scripts/` as plain `.mjs` (not bundled/type-checked by `tsc`, whose `include` is scoped to `src/`)
-- CLI-style scripts return an exit code from a testable `main(argv, overrides)` function rather than calling `process.exit` directly, and inject external effects (`fetch`, output dir) as parameters for testability — the same "inject external effects" shape reappears in `src/wasm/bridge.ts` (`fetchWasmExecSource`/`fetchWasmBytes`), needed there so the WASM bridge is testable under jsdom without a running dev server
+- CLI-style scripts return an exit code from a testable `main(argv, overrides)` function rather than calling `process.exit` directly, and inject external effects (`fetch`, output dir) as parameters for testability — the same "inject external effects" shape reappears in `src/wasm/bridge.ts` (`fetchWasmExecSource`/`fetchWasmBytes`) and `src/input/character-file-input.ts` (`readFileBytes`), needed wherever jsdom can't be trusted to behave like a real browser
 - `wasm_exec.js` (a plain global-side-effect script, not an ES module) is executed via `new Function(source)()` rather than a `<script>` tag or dynamic `import()`, so the same loading code works identically in a real browser and under jsdom/Node — see `.vibe/decisions/002-wasm-bridge-loading-and-result-shape.md`
-- Fixture-driven tests that exercise the real WASM module pin expected values obtained by running the actual module once against the fixture (not derived from the same mapping code under test), copying minimal `.air`/`.sff`/`.cns` fixtures from the `character` repo's own test data into `src/wasm/testdata/` rather than depending on a sibling checkout at test time
+- File bytes are read via `FileReader#readAsArrayBuffer` rather than `Blob#arrayBuffer()` for the same real-browser/jsdom parity reason — jsdom (as of the pinned version) does not implement `Blob#arrayBuffer()` at all, while `FileReader` works identically in both
+- Fixture-driven tests that exercise the real WASM module pin expected values obtained by running the actual module once against the fixture (not derived from the same mapping code under test), copying minimal `.air`/`.sff`/`.cns` fixtures from the `character` repo's own test data into `src/wasm/testdata/` rather than depending on a sibling checkout at test time; `src/input/`'s tests reuse those same fixtures rather than duplicating them
+- Multi-step user input gathered across several independent interactions accumulates into a slot-per-requirement structure rather than requiring one atomic batch, with errors attributed to the specific slot that caused them — see `.vibe/decisions/004-character-file-input-interaction-model.md`
 
 ## Other context files
 - [`models.md`](models.md) — data models

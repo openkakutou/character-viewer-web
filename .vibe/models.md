@@ -95,3 +95,32 @@ The typed outcome of `loadCharacter`: a discriminated union so a failure (malfor
 { ok: true; character: CharacterData } | { ok: false; error: string }
 ```
 Defined in: `src/wasm/types.ts`
+
+## CharacterInputResult
+The typed outcome of `loadCharacterFromSlots`: success, a specific file's read failure, or the WASM bridge's own reported error — never a thrown exception.
+
+```ts
+{ status: "success"; character: CharacterData }
+| { status: "read-error"; error: FileReadError }
+| { status: "bridge-error"; message: string }
+```
+Defined in: `src/input/character-file-input.ts`
+
+## FileReadError
+Identifies which required file failed to be read as bytes, and why.
+
+| Field | Type | Notes |
+|---|---|---|
+| kind | RequiredFileKind | `"def" \| "air" \| "sff" \| "cns"` |
+| fileName | string | |
+| message | string | |
+Defined in: `src/input/character-file-input.ts`
+
+## DuplicateKindError
+Reports that a single `mergeFiles` call supplied more than one file for the same required kind.
+
+| Field | Type |
+|---|---|
+| kind | RequiredFileKind |
+| fileNames | string[] |
+Defined in: `src/input/character-file-input.ts`

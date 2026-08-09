@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Users can now load a character by selecting its 4 files (`.def`, `.air`, `.sff`, `.cns`) through a file picker or by dragging and dropping them, in any number of gestures. Missing, conflicting (two files of the same type), unreadable, or corrupt files are called out clearly, and the app automatically loads and confirms the character once all 4 are valid.
+
 ## [0.2.0] - 2026-08-09
 
 ### Added

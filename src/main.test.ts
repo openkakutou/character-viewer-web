@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderApp } from "./main.ts";
 
 describe("renderApp", () => {
-  it("mounts a wuik-app-shell root frame with a toolbar title and the version in the main content area", () => {
+  it("mounts a wuik-app-shell root frame with a toolbar title (including the version) and the character file input in the main content area", () => {
     const root = document.createElement("div");
 
     renderApp(root, "0.1.0");
@@ -13,10 +13,10 @@ describe("renderApp", () => {
     const toolbar = shell?.querySelector('[slot="toolbar"]');
     expect(toolbar?.tagName.toLowerCase()).toBe("wuik-toolbar");
     expect(toolbar?.getAttribute("role")).toBe("banner");
-    expect(toolbar?.textContent).toBe("Character Viewer");
+    expect(toolbar?.textContent).toBe("Character Viewer — v0.1.0");
 
     const main = shell?.querySelector("main");
-    expect(main?.textContent).toBe("Character Viewer — v0.1.0");
+    expect(main?.querySelector('input[type="file"]')).not.toBeNull();
   });
 
   it("does not slot anything into the sidebar region", () => {
@@ -34,16 +34,17 @@ describe("renderApp", () => {
     renderApp(root, "0.2.0");
 
     expect(root.querySelectorAll("wuik-app-shell")).toHaveLength(1);
-    expect(root.querySelector("main")?.textContent).toBe(
+    expect(root.querySelector('[slot="toolbar"]')?.textContent).toBe(
       "Character Viewer — v0.2.0",
     );
+    expect(root.querySelectorAll('input[type="file"]')).toHaveLength(1);
   });
 
   it("renders without throwing and keeps a valid structure when given an empty version string", () => {
     const root = document.createElement("div");
 
     expect(() => renderApp(root, "")).not.toThrow();
-    expect(root.querySelector("main")?.textContent).toBe(
+    expect(root.querySelector('[slot="toolbar"]')?.textContent).toBe(
       "Character Viewer — v",
     );
   });

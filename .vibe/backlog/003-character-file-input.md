@@ -1,5 +1,5 @@
 ---
-status: todo
+status: in_progress
 depends_on: [002, 011]
 ---
 # Character File Input

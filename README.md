@@ -3,7 +3,7 @@
 A static web page for browsing everything about an [OpenKakutou](https://github.com/openkakutou) (MUGEN/Ikemen GO-compatible) character: sprites, palettes, animations, and full characteristics — so a character's construction can be thoroughly checked. It also has an in-game preview mode, with buttons to trigger animations live and a one-click list of special moves.
 
 <!-- vibe:begin:features -->
-This project is in early-stage development. The foundations are in place — character data loading and a consistent visual design shared with the rest of the OpenKakutou tools — but the browsing screens below are not built yet.
+This project is in early-stage development. You can already load a character by picking or dragging in its 4 files (`.def`, `.air`, `.sff`, `.cns`), in one go or across several drops — the app reads them, clearly calls out a missing, conflicting, unreadable, or corrupt file, and confirms once the character is loaded. The browsing screens below are not built yet.
 
 Planned:
 
