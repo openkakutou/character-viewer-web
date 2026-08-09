@@ -12,4 +12,4 @@ This repo has no UI yet beyond a placeholder (`src/main.ts` just writes a versio
 - [ ] No existing functionality (WASM bridge, version display) regresses
 
 ## Notes
-Should land before or alongside item 004 (Characteristics Panel) — the first real screen. Cross-repo dependency: `web-ui-kit` repo must exist with at least its layout shell/tokens published.
+Should land before or alongside item 004 (Characteristics Panel) — the first real screen. Item 003 (Character File Input) also depends on this now, since its file picker/drop-zone is itself real UI (`web-ui-kit`'s own form-input components include a file drop-zone) — landing 003 first would build that ad-hoc, then need retrofitting, exactly what this decision is meant to avoid. Cross-repo dependency: `web-ui-kit` repo must exist with at least its layout shell/tokens published.

@@ -1,6 +1,6 @@
 ---
 status: todo
-depends_on: [002]
+depends_on: [002, 011]
 ---
 # Character File Input
 
