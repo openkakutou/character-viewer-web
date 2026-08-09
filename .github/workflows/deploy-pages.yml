@@ -30,12 +30,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Test
-        run: npm test
-
-      - name: Lint
-        run: npx biome check .
-
+      # Must run before Test: the WASM bridge test suite loads
+      # public/wasm/wasm_exec.js directly, the same way the app itself
+      # does at runtime — see src/wasm/bridge.test.ts.
+      #
       # Pinned to character's latest release as of this workflow's
       # authoring. No cross-repo WASM version-pinning policy exists yet
       # (see roadmap .vibe/backlog/004) — bump this tag by hand when
@@ -43,6 +41,12 @@ jobs:
       # policy lands.
       - name: Download character WASM release
         run: npm run wasm:download -- v0.3.0
+
+      - name: Test
+        run: npm test
+
+      - name: Lint
+        run: npx biome check .
 
       - name: Build
         run: npm run build
