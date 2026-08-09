@@ -34,13 +34,13 @@ jobs:
       # public/wasm/wasm_exec.js directly, the same way the app itself
       # does at runtime — see src/wasm/bridge.test.ts.
       #
-      # Pinned to character's latest release as of this workflow's
-      # authoring. No cross-repo WASM version-pinning policy exists yet
-      # (see roadmap .vibe/backlog/004) — bump this tag by hand when
-      # character ships a release this app should pick up, until that
-      # policy lands.
+      # Pinned to an exact character release. Bumped as a follow-up step
+      # of character's own /vibe:release, per roadmap's
+      # .vibe/decisions/016-wasm-version-pinning-push-based-propagation.md
+      # — see this repo's own CLAUDE.md ("WASM dependency on character")
+      # for where that pin lives.
       - name: Download character WASM release
-        run: npm run wasm:download -- v0.3.0
+        run: npm run wasm:download -- v0.4.1
 
       - name: Test
         run: npm test
