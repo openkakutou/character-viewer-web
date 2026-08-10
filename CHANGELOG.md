@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The version number shown in the app's toolbar now always matches the actual deployed release instead of being stuck at an old value — it previously stayed hardcoded at an early development version regardless of what was actually released.
+
 ## [0.4.0] - 2026-08-10
 
 ### Added

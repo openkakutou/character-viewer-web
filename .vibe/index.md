@@ -23,6 +23,7 @@
 - Multi-step user input gathered across several independent interactions accumulates into a slot-per-requirement structure rather than requiring one atomic batch, with errors attributed to the specific slot that caused them — see `.vibe/decisions/004-character-file-input-interaction-model.md`
 - A new screen appears inline in the main content flow, automatically, rather than behind `web-ui-kit`'s `<wuik-tabs>`/sidebar navigation, as long as it's the only real destination — that component has no supported way to select a tab programmatically from outside anyway, so auto-navigating to one on an event (e.g. a successful load) isn't achievable without reaching past its public API. Tab/sidebar navigation is deferred until a second real screen exists and there's something to disambiguate — see `.vibe/decisions/005-characteristics-panel-inline-no-tab-navigation-yet.md`
 - A list of domain numbers/values reflects the loaded data faithfully (sorted for scannability, but never silently deduplicated) — same "show what the file actually contains" instinct as `input`'s error handling
+- The app version shown in the UI is imported directly from `package.json` (`resolveJsonModule`), never duplicated as a literal constant — a hardcoded copy previously drifted out of sync with every release; `src/version.test.ts` pins the guarantee by reading `package.json` independently rather than through `appVersion` itself
 
 ## Other context files
 - [`models.md`](models.md) — data models
