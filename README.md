@@ -35,7 +35,7 @@ npm update
 Download a specific version of the `character` library's WebAssembly build (needed to load a character):
 
 ```sh
-npm run wasm:download -- v0.4.1
+npm run wasm:download -- v0.4.3
 ```
 <!-- vibe:end:install -->
 

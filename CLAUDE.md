@@ -18,11 +18,13 @@ English — all documentation, backlog items, code comments, and other generated
 
 Character data (`.def`/`.sff`/`.air`/`.cns`) is parsed by the `character` Go library (github.com/openkakutou/character), not reimplemented here. This repo consumes it as a WebAssembly module, loaded client-side — no Go toolchain, no server, keeping this project a static site.
 
-A WASM build (`character.wasm` + `wasm_exec.js`) is published on every `character` tagged release (see `character`'s `.vibe/backlog/done/033-wasm-entrypoint-and-release-pipeline.md`). Run `npm run wasm:download -- <version>` (e.g. `npm run wasm:download -- v0.4.1`) to fetch the pinned release assets for a specific `character` version tag straight into `public/wasm/` — no Go toolchain or sibling `../character` checkout needed. `public/wasm/` stays gitignored either way: the artifact is downloaded, never committed.
+A WASM build (`character.wasm` + `wasm_exec.js`) is published on every `character` tagged release (see `character`'s `.vibe/backlog/done/033-wasm-entrypoint-and-release-pipeline.md`). Run `npm run wasm:download -- <version>` (e.g. `npm run wasm:download -- v0.4.3`) to fetch the pinned release assets for a specific `character` version tag straight into `public/wasm/` — no Go toolchain or sibling `../character` checkout needed. `public/wasm/` stays gitignored either way: the artifact is downloaded, never committed.
 
 **The current pin lives in exactly one place: the `wasm:download -- vX.Y.Z` argument in `.github/workflows/deploy-pages.yml`.** That is the source of truth a `character` release should update — see `character`'s own `CLAUDE.md` ("WASM release propagation") and `roadmap`'s `.vibe/decisions/016-wasm-version-pinning-push-based-propagation.md` for the org-wide policy: exact pins, bumped by the producer's own release step, no scheduled job. When bumping by hand, also update the illustrative version number in this section and in `README.md`'s install instructions so they don't drift into stale examples.
 
 The published JSON contract (`OpenKakutouCharacter.load`) currently exposes sprite *metadata* only — no decoded pixel/color data. Rendering actual sprite images (backlog items 005–007) is blocked on `character`'s own item `034-expose-sprite-pixel-resolution-via-wasm.md`.
+
+**This repo's entire backlog is currently blocked** on `character`'s real-world file compatibility fixes (its items `042`–`051`, all `status: todo` as of this note) — real community character files routinely fail to load (e.g. `cns: line N: malformed section header "..."` on a missing `]`, ~15% of a 717-file corpus) before any viewer feature even runs. Do not start a new backlog item here until those land upstream and the WASM pin below is bumped to a `character` release that includes them. See `roadmap`'s `.vibe/decisions/017-character-viewer-web-backlog-blocked-on-character-real-world-compat-fixes.md` for the full rationale and unblock condition.
 
 ## Architecture
 
