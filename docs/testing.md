@@ -15,8 +15,10 @@ test (`*.test.ts` next to the file it covers).
 ## Fixture-driven tests against the real WASM module
 
 Tests that touch character parsing (`src/wasm/bridge.test.ts`,
-`src/input/character-file-input.test.ts`, `src/input/character-file-input-view.test.ts`)
-run against the **real** `character.wasm` module, not a mock — they read
+`src/input/character-file-input.test.ts`, `src/input/character-file-input-view.test.ts`,
+and `src/main.test.ts`'s end-to-end describe block, which drives the real
+file picker through to the rendered characteristics panel) run against
+the **real** `character.wasm` module, not a mock — they read
 `public/wasm/character.wasm` + `wasm_exec.js` straight off disk via
 `node:fs` and inject them into the bridge's `fetchWasmExecSource`/
 `fetchWasmBytes` options, so no dev server or real network access is

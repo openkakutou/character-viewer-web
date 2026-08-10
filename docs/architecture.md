@@ -13,6 +13,7 @@ itself.
 ```mermaid
 flowchart LR
     app["app\n(src/main.ts)"] --> input["input\n(src/input/)"]
+    app --> viewer["viewer\n(src/viewer/)"]
     input --> wasm["wasm\n(src/wasm/)"]
     wasm -.->|fetch + WebAssembly.instantiate| module["character.wasm\n(public/wasm/, gitignored)"]
     scripts["scripts\n(scripts/download-wasm.mjs)"] -.->|fetches at dev-setup time| module
@@ -22,8 +23,9 @@ flowchart LR
 
 - **`app`** (`src/main.ts`, `src/version.ts`, `src/style.css`) — the entry
   point. Builds the root layout (the org's shared `@openkakutou/web-ui-kit`
-  app shell: a toolbar plus a main content region) and mounts the `input`
-  module's view into the main content region.
+  app shell: a toolbar plus a main content region), mounts the `input`
+  module's view into it, and wires its load callback to the `viewer`
+  module's panel.
 - **`input`** (`src/input/`) — the character file input. `character-file-input.ts`
   holds the DOM-free logic: it accumulates the 4 required files
   (`.def`/`.air`/`.sff`/`.cns`) across any number of picker/drop gestures,
@@ -31,6 +33,12 @@ flowchart LR
   file — see `.vibe/decisions/004-character-file-input-interaction-model.md`),
   and calls into `wasm` once all 4 are present. `character-file-input-view.ts`
   renders the file-picker + drag-and-drop UI on top of that logic.
+- **`viewer`** (`src/viewer/`) — screens that display an already-loaded
+  character's data. `characteristics-panel.ts` renders the first such
+  screen: name, animation count, total sprite count, and the sorted list
+  of Statedef numbers, appearing inline once a character loads rather
+  than behind a tab/sidebar navigation — see
+  `.vibe/decisions/005-characteristics-panel-inline-no-tab-navigation-yet.md`.
 - **`wasm`** (`src/wasm/`) — the bridge to the `character` WebAssembly
   module. `bridge.ts` loads `wasm_exec.js` and instantiates `character.wasm`
   client-side (both fetched from `public/wasm/`, which is gitignored — see
@@ -66,3 +74,7 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
 4. `input`'s view reports success (character loaded) or a typed failure
    (a specific unreadable file, or the WASM module's own parse error) back
    to the caller — never a thrown exception at any layer.
+5. On success, `app` passes the loaded `CharacterData` to `viewer`'s
+   characteristics panel, which renders it immediately — no navigation
+   step. Loading a different character later repeats this from step 1 and
+   fully replaces the panel's previous content.

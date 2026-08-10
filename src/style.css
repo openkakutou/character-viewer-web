@@ -103,3 +103,80 @@
   font-size: var(--wuik-font-size-sm);
   color: var(--wuik-color-text-secondary);
 }
+
+/*
+ * Characteristics panel (backlog item 004) — the app's first real content
+ * screen. Hierarchy: name (dominant) -> stat cluster (labeled counts,
+ * reads as data not prose) -> state list (a scannable grid, not a single
+ * long column, since a real character can have 100+ Statedefs).
+ */
+
+.characteristics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-4);
+  padding: var(--wuik-space-4);
+}
+
+.characteristics-panel__name {
+  margin: 0;
+  font-size: var(--wuik-font-size-xl);
+  font-weight: var(--wuik-font-weight-bold);
+}
+
+.characteristics-panel__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wuik-space-5);
+  margin: 0;
+  padding-bottom: var(--wuik-space-3);
+  border-bottom: 1px solid var(--wuik-color-border);
+}
+
+.characteristics-panel__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-1);
+}
+
+.characteristics-panel__stat dt {
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.characteristics-panel__stat dd {
+  margin: 0;
+  font-size: var(--wuik-font-size-lg);
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.characteristics-panel__states h3 {
+  margin: 0 0 var(--wuik-space-2);
+  font-size: var(--wuik-font-size-base);
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.characteristics-panel__states-empty {
+  margin: 0;
+  color: var(--wuik-color-text-secondary);
+}
+
+.characteristics-panel__states-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.5em, 1fr));
+  gap: var(--wuik-space-1) var(--wuik-space-2);
+  max-height: 16em;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-family: var(--wuik-font-family-mono);
+  font-size: var(--wuik-font-size-sm);
+}
+
+.characteristics-panel__states-list li {
+  padding: var(--wuik-space-1) var(--wuik-space-2);
+  background-color: var(--wuik-color-surface);
+  border-radius: var(--wuik-space-1);
+  text-align: center;
+}

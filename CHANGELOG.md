@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Once a character is loaded, its name, total animation count, total sprite count, and full list of combat state (Statedef) numbers now display automatically as the app's first real screen — no extra click needed. A character with no animations, sprites, or states shows that explicitly instead of a blank section, and loading a different character afterward fully replaces what's shown.
+
 ## [0.3.0] - 2026-08-09
 
 ### Added
