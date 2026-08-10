@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-10
+
 ### Fixed
 
 - The version number shown in the app's toolbar now always matches the actual deployed release instead of being stuck at an old value — it previously stayed hardcoded at an early development version regardless of what was actually released.
@@ -34,7 +36,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/openkakutou/character-viewer-web/releases/tag/v0.2.0
