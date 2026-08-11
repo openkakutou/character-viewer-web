@@ -60,6 +60,14 @@ describe("renderApp", () => {
 
     expect(root.querySelector(".characteristics-panel")).toBeNull();
   });
+
+  it("does not show the sprite browser before any character is loaded", () => {
+    const root = document.createElement("div");
+
+    renderApp(root, "0.1.0");
+
+    expect(root.querySelector(".sprite-browser")).toBeNull();
+  });
 });
 
 describe("renderApp — end-to-end character load", () => {
@@ -123,5 +131,11 @@ describe("renderApp — end-to-end character load", () => {
       root.querySelectorAll(".characteristics-panel__states-list li"),
     ).map((el) => el.textContent);
     expect(stateItems).toEqual(["-1", "0", "200"]);
+
+    // v1-basic.sff carries exactly one sprite group with one sprite.
+    expect(root.querySelector(".sprite-browser")).not.toBeNull();
+    expect(root.querySelector(".sprite-browser h3")?.textContent).toBe(
+      "Sprites (1)",
+    );
   });
 });

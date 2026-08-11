@@ -83,6 +83,8 @@ describe("renderCharacterFileInput", () => {
 
     const loadedCharacter = onLoaded.mock.calls[0]?.[0];
     expect(loadedCharacter.name).toBe("View Test Character");
+    const loadedSffBytes = onLoaded.mock.calls[0]?.[1];
+    expect(loadedSffBytes).toEqual(fixtureBytes("v1-basic.sff"));
 
     const status = root.querySelector(".file-input__status");
     expect(status?.textContent).toContain("Character loaded");

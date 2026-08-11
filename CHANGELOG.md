@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Once a character is loaded, its sprites can now be browsed: pick a sprite group, then a specific sprite, to see its actual decoded image (not just its dimensions). Sprites are only decoded when selected, so browsing a character with hundreds of sprites stays fast. A sprite that fails to decode shows a clear message instead of a broken image.
+
 ## [0.4.1] - 2026-08-10
 
 ### Fixed

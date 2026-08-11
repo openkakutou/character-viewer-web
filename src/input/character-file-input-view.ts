@@ -17,8 +17,14 @@ import {
 } from "./character-file-input.ts";
 
 export interface CharacterFileInputViewOptions {
-  /** Called once the 4 required files have been read and the character successfully loaded. */
-  onLoaded: (character: CharacterData) => void;
+  /**
+   * Called once the 4 required files have been read and the character
+   * successfully loaded. `sffBytes` is the same raw `.sff` bytes just read,
+   * threaded through for a caller that needs to decode a specific sprite's
+   * pixels later (`resolveSpritePixels`) — `character`'s own metadata never
+   * carries pixel data.
+   */
+  onLoaded: (character: CharacterData, sffBytes: Uint8Array) => void;
   /** Forwarded to the file-reading/WASM bridge layer; injectable for testing. */
   bridgeOptions?: CharacterFileInputOptions;
 }
@@ -158,7 +164,7 @@ export function renderCharacterFileInput(
         (kind) => slots[kind]?.name ?? "",
       );
       render();
-      options.onLoaded(result.character);
+      options.onLoaded(result.character, result.sffBytes);
       return;
     }
 

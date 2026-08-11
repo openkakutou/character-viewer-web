@@ -3,11 +3,10 @@
 A static web page for browsing everything about an [OpenKakutou](https://github.com/openkakutou) (MUGEN/Ikemen GO-compatible) character: sprites, palettes, animations, and full characteristics — so a character's construction can be thoroughly checked. It also has an in-game preview mode, with buttons to trigger animations live and a one-click list of special moves.
 
 <!-- vibe:begin:features -->
-This project is in early-stage development. You can already load a character by picking or dragging in its 4 files (`.def`, `.air`, `.sff`, `.cns`), in one go or across several drops — the app reads them, clearly calls out a missing, conflicting, unreadable, or corrupt file, and confirms once the character is loaded. Once loaded, its name, animation count, sprite count, and full list of combat states display automatically. The browsing screens below are not built yet.
+This project is in early-stage development. You can already load a character by picking or dragging in its 4 files (`.def`, `.air`, `.sff`, `.cns`), in one go or across several drops — the app reads them, clearly calls out a missing, conflicting, unreadable, or corrupt file, and confirms once the character is loaded. Once loaded, its name, animation count, sprite count, and full list of combat states display automatically, and every sprite in its sheet can be browsed group by group with its actual image shown on selection — decoded only when you pick it, so even a sheet with hundreds of sprites stays fast to browse. The remaining browsing screens below are not built yet.
 
 Planned:
 
-- Browse every sprite in a character's sprite sheet
 - Choose and preview a color palette
 - Play back a character's animations
 - An in-game preview mode: trigger animations with buttons, list special moves and execute each with a single click

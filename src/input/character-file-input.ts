@@ -119,9 +119,16 @@ export interface FileReadError {
   message: string;
 }
 
-/** Outcome of reading the 4 required files and passing them to the WASM bridge. */
+/**
+ * Outcome of reading the 4 required files and passing them to the WASM
+ * bridge. `sffBytes` on success is the same raw `.sff` bytes already read
+ * from the user's selection, threaded through (not re-read) so a caller can
+ * later decode a specific sprite's actual pixels on demand via
+ * `resolveSpritePixels` — `character`'s metadata-only bytes never carry
+ * that. See .vibe/decisions/006-sff-bytes-threaded-through-load-result-for-on-demand-pixel-decode.md.
+ */
 export type CharacterInputResult =
-  | { status: "success"; character: CharacterData }
+  | { status: "success"; character: CharacterData; sffBytes: Uint8Array }
   | { status: "read-error"; error: FileReadError }
   | { status: "bridge-error"; message: string };
 
@@ -209,5 +216,9 @@ export async function loadCharacterFromSlots(
   if (!result.ok) {
     return { status: "bridge-error", message: result.error };
   }
-  return { status: "success", character: result.character };
+  return {
+    status: "success",
+    character: result.character,
+    sffBytes: bytesByKind.sff,
+  };
 }

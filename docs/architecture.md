@@ -15,6 +15,7 @@ flowchart LR
     app["app\n(src/main.ts)"] --> input["input\n(src/input/)"]
     app --> viewer["viewer\n(src/viewer/)"]
     input --> wasm["wasm\n(src/wasm/)"]
+    viewer --> wasm
     wasm -.->|fetch + WebAssembly.instantiate| module["character.wasm\n(public/wasm/, gitignored)"]
     scripts["scripts\n(scripts/download-wasm.mjs)"] -.->|fetches at dev-setup time| module
 
@@ -39,13 +40,25 @@ flowchart LR
   of Statedef numbers, appearing inline once a character loads rather
   than behind a tab/sidebar navigation — see
   `.vibe/decisions/005-characteristics-panel-inline-no-tab-navigation-yet.md`.
+  `sprite-browser.ts` renders alongside it: a collapsed-by-default list of
+  sprite groups (expanding one lazily mounts only its own sprites, so a
+  sheet with hundreds of sprites never dumps hundreds of DOM rows at once)
+  and a preview `<canvas>` that decodes and shows the selected sprite's
+  actual pixels on demand via `wasm`'s `resolveSpritePixels`, scaled to fit
+  a fixed-size stage (`computeScaleToFit`) — see
+  `.vibe/decisions/007-sprite-preview-raw-canvas-not-wuik-viewport.md` for
+  why this is a plain `<canvas>` rather than `web-ui-kit`'s `<wuik-viewport>`.
 - **`wasm`** (`src/wasm/`) — the bridge to the `character` WebAssembly
   module. `bridge.ts` loads `wasm_exec.js` and instantiates `character.wasm`
   client-side (both fetched from `public/wasm/`, which is gitignored — see
   "WebAssembly dependency" below), then exposes a typed `loadCharacter(...)`
-  wrapper around the module's `OpenKakutouCharacter.load` global. `types.ts`
-  is the TypeScript mirror of the module's JSON contract (`CharacterData`
-  and its nested shapes) — pure data types, no parsing logic.
+  wrapper around the module's `OpenKakutouCharacter.load` global, plus a
+  `resolveSpritePixels(...)` wrapper around `OpenKakutouCharacter.resolveSprites`
+  for decoding a specific sprite's actual on-screen pixels on demand — never
+  part of `loadCharacter`'s own JSON contract, which only ever carries
+  sprite metadata. `types.ts` is the TypeScript mirror of the module's JSON
+  contract (`CharacterData` and its nested shapes) — pure data types, no
+  parsing logic.
 - **`scripts`** (`scripts/download-wasm.mjs`) — dev-only tooling, not part
   of the shipped app bundle. Fetches a pinned `character` release's
   `character.wasm` + `wasm_exec.js` into `public/wasm/` so contributors
@@ -74,7 +87,16 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
 4. `input`'s view reports success (character loaded) or a typed failure
    (a specific unreadable file, or the WASM module's own parse error) back
    to the caller — never a thrown exception at any layer.
-5. On success, `app` passes the loaded `CharacterData` to `viewer`'s
-   characteristics panel, which renders it immediately — no navigation
-   step. Loading a different character later repeats this from step 1 and
-   fully replaces the panel's previous content.
+5. On success, `app` passes the loaded `CharacterData` — and the raw
+   `.sff` bytes just read, threaded through unchanged (see
+   `.vibe/decisions/006-sff-bytes-threaded-through-load-result-for-on-demand-pixel-decode.md`)
+   — to `viewer`'s characteristics panel and sprite browser, both of which
+   render immediately: no navigation step. Loading a different character
+   later repeats this from step 1 and fully replaces both panels' previous
+   content.
+6. Selecting a sprite in the sprite browser is a separate, later
+   round trip: it calls `wasm.resolveSpritePixels` with the `.sff` bytes
+   from step 5 and just that one sprite's `(group, image)`, decoding pixels
+   only for the sprite actually selected. A slower response for an
+   already-superseded selection is discarded rather than overwriting a
+   newer one's preview.

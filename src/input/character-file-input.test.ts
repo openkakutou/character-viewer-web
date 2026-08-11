@@ -176,6 +176,14 @@ describe("loadCharacterFromSlots", () => {
     expect(result.character.animations).toHaveLength(2);
   });
 
+  it("also returns the raw .sff bytes on success, for on-demand sprite pixel decoding", async () => {
+    const result = await loadCharacterFromSlots(validSlots(), testOptions);
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") throw new Error("expected success");
+    expect(result.sffBytes).toEqual(fixtureBytes("v1-basic.sff"));
+  });
+
   it("returns a read-error naming the offending file when one file cannot be read as bytes", async () => {
     const slots = validSlots();
     const optionsWithFailingSff: CharacterFileInputOptions = {

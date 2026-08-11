@@ -53,7 +53,7 @@ A collection of Sprites sharing the same `.sff` group index.
 Defined in: `src/wasm/types.ts`
 
 ## Sprite
-A single sprite's metadata (no decoded pixel data — see `character`'s own `034-expose-sprite-pixel-resolution-via-wasm.md`, not yet bridged here).
+A single sprite's metadata only — no decoded pixel data (that's `SpritePixelResult`, resolved separately and on demand via `resolveSpritePixels`, not part of this shape).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -97,14 +97,23 @@ The typed outcome of `loadCharacter`: a discriminated union so a failure (malfor
 Defined in: `src/wasm/types.ts`
 
 ## CharacterInputResult
-The typed outcome of `loadCharacterFromSlots`: success, a specific file's read failure, or the WASM bridge's own reported error — never a thrown exception.
+The typed outcome of `loadCharacterFromSlots`: success, a specific file's read failure, or the WASM bridge's own reported error — never a thrown exception. On success, `sffBytes` is the same raw `.sff` bytes already read (not re-read), threaded through for on-demand sprite pixel decoding (see `SpritePixelResult`).
 
 ```ts
-{ status: "success"; character: CharacterData }
+{ status: "success"; character: CharacterData; sffBytes: Uint8Array }
 | { status: "read-error"; error: FileReadError }
 | { status: "bridge-error"; message: string }
 ```
 Defined in: `src/input/character-file-input.ts`
+
+## SpritePixelResult
+The typed outcome of decoding one sprite's pixels via `resolveSpritePixels` — a discriminated union, never a thrown exception.
+
+```ts
+{ ok: true; pixels: Uint8Array; width: number; height: number } | { ok: false; error: string }
+```
+`pixels` is a flat, row-major, straight-alpha RGBA buffer (`width * height * 4` bytes) — directly usable with `ImageData`.
+Defined in: `src/wasm/bridge.ts`
 
 ## FileReadError
 Identifies which required file failed to be read as bytes, and why.

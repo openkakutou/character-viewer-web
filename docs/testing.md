@@ -49,14 +49,28 @@ Native browser objects that jsdom doesn't construct in a test-friendly way
 (partial) `DataTransfer`, which isn't implemented at all in this jsdom
 version.
 
+`HTMLCanvasElement.getContext("2d")` isn't implemented in jsdom at all (it
+throws rather than returning `null`) without the separate `canvas` npm
+package, which this project doesn't depend on. `sprite-browser.test.ts`
+never calls the real 2D context in its own unit tests — it injects a
+`drawPixels` stub (see "Testable-by-construction patterns" below) and
+asserts against the stub's recorded arguments (pixels/width/height)
+instead. The real `defaultDrawPixels` implementation is only exercised via
+real-browser verification (see below), not the jsdom test suite.
+
 ## Testable-by-construction patterns
 
 Every layer that touches the outside world (network `fetch`, WASM
-instantiation, file reads) takes its effect as an injectable
-option — `WasmBridgeOptions.fetchWasmExecSource`/`fetchWasmBytes`,
-`CharacterFileInputOptions.readFileBytes` — defaulting to the real
-implementation but overridable in tests. This is the same shape used by
-`scripts/download-wasm.mjs`'s testable `main(argv, overrides)`.
+instantiation, file reads, canvas drawing) takes its effect as an
+injectable option — `WasmBridgeOptions.fetchWasmExecSource`/`fetchWasmBytes`,
+`CharacterFileInputOptions.readFileBytes`, `SpriteBrowserOptions.resolveSpritePixels`/`drawPixels` —
+defaulting to the real implementation but overridable in tests. This is the
+same shape used by `scripts/download-wasm.mjs`'s testable
+`main(argv, overrides)`. `sprite-browser.test.ts` additionally uses a
+deferred-promise helper to control exactly when an injected
+`resolveSpritePixels` resolves, needed to test that a slower, superseded
+sprite decode is discarded rather than overwriting a newer selection's
+preview.
 
 ## Beyond the test suite: real-browser verification
 
@@ -64,5 +78,10 @@ Passing tests are not treated as proof a UI feature works. Features that
 render DOM are additionally driven against a real headless Chromium
 (dev server + Playwright) during development — exercising drag-and-drop,
 keyboard-only operation, and visual states a jsdom-only test can't fully
-confirm. This isn't part of `npm test`; it's a manual verification step
-recorded in the relevant backlog item/decision, not a CI gate.
+confirm. For the sprite browser specifically, this is also where the real
+canvas draw path (`defaultDrawPixels`, never exercised under jsdom — see
+above) and a genuinely large sprite sheet (500+ real sprites, from a real
+character fixture) were actually verified, including reading back the
+canvas's own pixel data to confirm it isn't blank. This isn't part of
+`npm test`; it's a manual verification step recorded in the relevant
+backlog item/decision, not a CI gate.

@@ -180,3 +180,114 @@
   border-radius: var(--wuik-space-1);
   text-align: center;
 }
+
+/*
+ * Sprite browser (backlog item 005). Two-pane layout: a scrollable group/
+ * sprite list (same max-height + overflow-y:auto convention as the
+ * characteristics panel's state list, since a real sheet can hold hundreds
+ * of sprites) alongside a fixed-height preview stage, so switching between
+ * a tiny icon and a full-body frame never reflows the layout. See
+ * .vibe/decisions/007-sprite-preview-raw-canvas-not-wuik-viewport.md for
+ * why the preview is a plain <canvas> with a local scale-to-fit instead of
+ * web-ui-kit's <wuik-viewport>.
+ */
+
+.sprite-browser {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-3);
+  padding: var(--wuik-space-4);
+}
+
+.sprite-browser__empty {
+  margin: 0;
+  color: var(--wuik-color-text-secondary);
+}
+
+.sprite-browser__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wuik-space-4);
+}
+
+.sprite-browser__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-1);
+  min-width: 14em;
+  max-width: 18em;
+  max-height: 16em;
+  overflow-y: auto;
+  font-size: var(--wuik-font-size-sm);
+}
+
+.sprite-browser__group-toggle {
+  padding: var(--wuik-space-1) var(--wuik-space-2);
+  text-align: left;
+  background: none;
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-1);
+  color: var(--wuik-color-text);
+  cursor: pointer;
+}
+
+.sprite-browser__sprites {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-1);
+  padding-left: var(--wuik-space-3);
+}
+
+.sprite-browser__sprite {
+  padding: var(--wuik-space-1) var(--wuik-space-2);
+  text-align: left;
+  font-family: var(--wuik-font-family-mono);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--wuik-space-1);
+  color: var(--wuik-color-text);
+  cursor: pointer;
+}
+
+.sprite-browser__sprite:hover {
+  background-color: var(--wuik-color-surface);
+}
+
+.sprite-browser__sprite[aria-current="true"] {
+  background-color: var(--wuik-color-surface);
+  border-color: var(--wuik-color-accent);
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.sprite-browser__preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-2);
+  flex: 1;
+  min-width: 12em;
+}
+
+.sprite-browser__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16em;
+  background-color: var(--wuik-color-surface);
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-2);
+}
+
+.sprite-browser__canvas {
+  image-rendering: pixelated;
+}
+
+.sprite-browser__preview-status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.sprite-browser__preview-status--error {
+  color: var(--wuik-color-text);
+}
