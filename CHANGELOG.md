@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-11
+
 ### Added
 
 - Once a character is loaded, its sprites can now be browsed: pick a sprite group, then a specific sprite, to see its actual decoded image (not just its dimensions). Sprites are only decoded when selected, so browsing a character with hundreds of sprites stays fast. A sprite that fails to decode shows a clear message instead of a broken image.
@@ -40,7 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.2.0...v0.3.0
