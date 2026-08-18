@@ -49,6 +49,12 @@ Native browser objects that jsdom doesn't construct in a test-friendly way
 (partial) `DataTransfer`, which isn't implemented at all in this jsdom
 version.
 
+Programmatically calling `.click()` on a checkbox in this project's pinned
+jsdom version does not reliably synthesize a `"change"` event, even though
+it does toggle `.checked` before dispatching `"click"`. `animation-player.ts`
+reads `.checked` from a `"click"` listener instead of a `"change"` one for
+its Loop/collision-overlay toggles, for this reason.
+
 `HTMLCanvasElement.getContext("2d")` isn't implemented in jsdom at all (it
 throws rather than returning `null`) without the separate `canvas` npm
 package, which this project doesn't depend on. `sprite-browser.test.ts`
@@ -63,14 +69,18 @@ real-browser verification (see below), not the jsdom test suite.
 Every layer that touches the outside world (network `fetch`, WASM
 instantiation, file reads, canvas drawing) takes its effect as an
 injectable option — `WasmBridgeOptions.fetchWasmExecSource`/`fetchWasmBytes`,
-`CharacterFileInputOptions.readFileBytes`, `SpriteBrowserOptions.resolveSpritePixels`/`drawPixels` —
+`CharacterFileInputOptions.readFileBytes`, `SpriteBrowserOptions.resolveSpritePixels`/`drawPixels`,
+`AnimationPlayerOptions.resolveSpritePixels`/`drawPixels`/`drawClsnOverlay` —
 defaulting to the real implementation but overridable in tests. This is the
 same shape used by `scripts/download-wasm.mjs`'s testable
-`main(argv, overrides)`. `sprite-browser.test.ts` additionally uses a
-deferred-promise helper to control exactly when an injected
-`resolveSpritePixels` resolves, needed to test that a slower, superseded
-sprite decode is discarded rather than overwriting a newer selection's
-preview.
+`main(argv, overrides)`. `sprite-browser.test.ts` and `animation-player.test.ts`
+additionally use a deferred-promise helper to control exactly when an
+injected `resolveSpritePixels` resolves, needed to test that a slower,
+superseded sprite decode is discarded rather than overwriting a newer
+selection's preview. `animation-player.test.ts` also uses
+`vi.useFakeTimers()`/`vi.advanceTimersByTimeAsync(...)` to deterministically
+drive playback's per-frame `setTimeout` chain rather than waiting on real
+wall-clock time.
 
 ## Beyond the test suite: real-browser verification
 
@@ -82,6 +92,11 @@ confirm. For the sprite browser specifically, this is also where the real
 canvas draw path (`defaultDrawPixels`, never exercised under jsdom — see
 above) and a genuinely large sprite sheet (500+ real sprites, from a real
 character fixture) were actually verified, including reading back the
-canvas's own pixel data to confirm it isn't blank. This isn't part of
-`npm test`; it's a manual verification step recorded in the relevant
-backlog item/decision, not a CI gate.
+canvas's own pixel data to confirm it isn't blank. For the animation player,
+the same real-browser pass verified playback naturally stopping on the last
+frame, manual stepping, looping back past the end, and the collision box
+overlay actually rendering (visually, and by scanning the canvas's own
+pixel data for the overlay's colors) rather than only asserting a stub was
+called with the right arguments. This isn't part of `npm test`; it's a
+manual verification step recorded in the relevant backlog item/decision,
+not a CI gate.

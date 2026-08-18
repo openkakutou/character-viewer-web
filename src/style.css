@@ -291,3 +291,75 @@
 .sprite-browser__preview-status--error {
   color: var(--wuik-color-text);
 }
+
+/*
+ * Animation player (backlog item 007). Same panel/preview-stage rhythm as
+ * the sprite browser above (spacing tokens, stage size, canvas pixelation,
+ * status line convention) so the two panels read as one system rather than
+ * two different tools stacked together. The controls row sits above the
+ * stage instead of a side list, since there is one animation played back at
+ * a time rather than many sprites browsed at once. See
+ * .vibe/decisions/009-animation-player-timing-looping-and-collision-overlay-design.md
+ * for the collision overlay's own color/coordinate-system decisions.
+ */
+
+.animation-player {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-3);
+  padding: var(--wuik-space-4);
+}
+
+.animation-player__empty {
+  margin: 0;
+  color: var(--wuik-color-text-secondary);
+}
+
+.animation-player__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--wuik-space-3);
+}
+
+.animation-player__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--wuik-space-1);
+}
+
+.animation-player__frame-counter {
+  margin: 0 0 0 auto;
+  font-family: var(--wuik-font-family-mono);
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.animation-player__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16em;
+  background-color: var(--wuik-color-surface);
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-2);
+}
+
+.animation-player__canvas {
+  image-rendering: pixelated;
+}
+
+.animation-player__preview-status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.animation-player__preview-status--error {
+  color: var(--wuik-color-text);
+}
+
+.animation-player__preview-status--blank {
+  font-style: italic;
+}

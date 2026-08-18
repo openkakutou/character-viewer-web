@@ -37,9 +37,11 @@ export function computeScaleToFit(width: number, height: number): number {
  * Draws `pixels` (a flat, row-major RGBA buffer, straight alpha) onto
  * `canvas` at their native resolution. The real, browser-only
  * implementation — tests inject a stub instead, since jsdom does not
- * implement `HTMLCanvasElement.getContext("2d")` at all.
+ * implement `HTMLCanvasElement.getContext("2d")` at all. Exported so other
+ * preview panels (e.g. the animation player, item 007) can reuse the same
+ * default instead of duplicating it.
  */
-function defaultDrawPixels(
+export function defaultDrawPixels(
   canvas: HTMLCanvasElement,
   pixels: Uint8Array,
   width: number,

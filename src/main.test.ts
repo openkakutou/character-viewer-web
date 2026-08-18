@@ -68,6 +68,14 @@ describe("renderApp", () => {
 
     expect(root.querySelector(".sprite-browser")).toBeNull();
   });
+
+  it("does not show the animation player before any character is loaded", () => {
+    const root = document.createElement("div");
+
+    renderApp(root, "0.1.0");
+
+    expect(root.querySelector(".animation-player")).toBeNull();
+  });
 });
 
 describe("renderApp — end-to-end character load", () => {
@@ -137,5 +145,13 @@ describe("renderApp — end-to-end character load", () => {
     expect(root.querySelector(".sprite-browser h3")?.textContent).toBe(
       "Sprites (1)",
     );
+
+    // sample.air declares 2 animations; the player defaults to the first.
+    expect(root.querySelector(".animation-player")).not.toBeNull();
+    await vi.waitFor(() => {
+      expect(
+        root.querySelector(".animation-player__frame-counter")?.textContent,
+      ).toMatch(/^Frame 1 \/ \d+$/);
+    });
   });
 });

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Once a character is loaded, its animations can now be played back frame by frame: pick an animation, then play, pause, or step through it one frame at a time, with each frame held for its own correct duration. Playback can loop back to the animation's own loop point instead of stopping at the end. An optional overlay shows each frame's attack and vulnerability collision boxes on top of the sprite. A frame with no sprite (a legitimate authoring convention for gaps in an animation) shows as an empty frame instead of an error.
+
 ## [0.5.0] - 2026-08-11
 
 ### Added

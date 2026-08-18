@@ -48,6 +48,21 @@ flowchart LR
   a fixed-size stage (`computeScaleToFit`) — see
   `.vibe/decisions/007-sprite-preview-raw-canvas-not-wuik-viewport.md` for
   why this is a plain `<canvas>` rather than `web-ui-kit`'s `<wuik-viewport>`.
+  `animation-player.ts` renders alongside both: plays an `Animation`'s
+  `Frame`s back on a `setTimeout` chain paced by each frame's own `time`
+  (in game ticks, `MS_PER_TICK` = 1/60s), decoding and drawing the current
+  frame's sprite the same way the sprite browser does, reusing its
+  `computeScaleToFit`/`defaultDrawPixels`. Reaching the end of the frame
+  list stops playback unless looping is on, in which case it wraps to the
+  animation's `loopStart`. A frame using the `.air` "no sprite" sentinel
+  (any negative group/image value) shows as an empty frame instead of
+  attempting a decode. An optional overlay draws each frame's `Clsn1`/`Clsn2`
+  boxes, offset by the sprite's axis point, directly onto the same
+  native-resolution canvas as the sprite pixels so it stays pixel-aligned
+  at any zoom — see
+  `.vibe/decisions/009-animation-player-timing-looping-and-collision-overlay-design.md`
+  for the timing, looping, and overlay-color decisions none of this was
+  specified upstream.
 - **`wasm`** (`src/wasm/`) — the bridge to the `character` WebAssembly
   module. `bridge.ts` loads `wasm_exec.js` and instantiates `character.wasm`
   client-side (both fetched from `public/wasm/`, which is gitignored — see
@@ -100,3 +115,7 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
    only for the sprite actually selected. A slower response for an
    already-superseded selection is discarded rather than overwriting a
    newer one's preview.
+7. The animation player follows the same on-demand decode pattern per
+   frame as it plays, steps, or loops — each frame change triggers its own
+   `resolveSpritePixels` round trip (also discarding a superseded response),
+   rather than pre-decoding a whole animation's frames up front.

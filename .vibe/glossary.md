@@ -10,8 +10,8 @@ An ordered sequence of Frames plus the point at which playback loops back once i
 _Sources: `src/wasm/types.ts`_
 
 ## Frame
-A single displayed image within an Animation: which Sprite to show, where to show it, how long to hold it, how to mirror/blend it, and the collision boxes active while it is displayed.
-_Sources: `src/wasm/types.ts`_
+A single displayed image within an Animation: which Sprite to show, where to show it, how long to hold it, how to mirror/blend it, and the collision boxes active while it is displayed. A Frame can also be blank — its Sprite reference uses the `.air` format's "no sprite shown" sentinel (any negative group/image value) — meaning it deliberately displays nothing rather than referencing a real Sprite.
+_Sources: `src/wasm/types.ts`, `src/viewer/animation-player.ts`_
 
 ## Collision box
 An axis-aligned box attached to a Frame that defines a region used for hit detection: an attack box (`clsn1`) or a vulnerability box (`clsn2`).
