@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-18
+
 ### Added
 
 - Once a character is loaded, its animations can now be played back frame by frame: pick an animation, then play, pause, or step through it one frame at a time, with each frame held for its own correct duration. Playback can loop back to the animation's own loop point instead of stopping at the end. An optional overlay shows each frame's attack and vulnerability collision boxes on top of the sprite. A frame with no sprite (a legitimate authoring convention for gaps in an animation) shows as an empty frame instead of an error.
@@ -46,7 +48,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.3.0...v0.4.0
