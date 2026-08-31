@@ -9,6 +9,7 @@ The full character graph returned by the WASM bridge (`loadCharacter`), mirrorin
 | animations | Animation[] | |
 | sprites | SpriteGroup[] | |
 | stateDefs | StateDef[] | |
+| palettes | string[] | `.act` file paths referenced by the `.def`'s `[Files]` section — metadata only, this app never has their bytes (see the palette picker, item 006) |
 Defined in: `src/wasm/types.ts`
 
 ## Animation

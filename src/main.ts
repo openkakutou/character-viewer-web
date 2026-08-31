@@ -6,6 +6,7 @@ import type { CharacterFileInputOptions } from "./input/character-file-input.ts"
 import { appVersion } from "./version.ts";
 import { renderAnimationPlayer } from "./viewer/animation-player.ts";
 import { renderCharacteristicsPanel } from "./viewer/characteristics-panel.ts";
+import { renderPalettePicker } from "./viewer/palette-picker.ts";
 import { renderSpriteBrowser } from "./viewer/sprite-browser.ts";
 
 const APP_TITLE = "Character Viewer";
@@ -47,22 +48,37 @@ export function renderApp(
 
   const main = document.createElement("main");
   const characteristicsContainer = document.createElement("div");
+  const palettePickerContainer = document.createElement("div");
   const spriteBrowserContainer = document.createElement("div");
   const animationPlayerContainer = document.createElement("div");
   renderCharacterFileInput(main, {
     onLoaded: (character, sffBytes) => {
       renderCharacteristicsPanel(characteristicsContainer, character);
-      renderSpriteBrowser(spriteBrowserContainer, character, sffBytes, {
+      const spriteBrowser = renderSpriteBrowser(
+        spriteBrowserContainer,
+        character,
+        sffBytes,
+        { bridgeOptions: options.bridgeOptions },
+      );
+      const animationPlayer = renderAnimationPlayer(
+        animationPlayerContainer,
+        character,
+        sffBytes,
+        { bridgeOptions: options.bridgeOptions },
+      );
+      renderPalettePicker(palettePickerContainer, character, sffBytes, {
         bridgeOptions: options.bridgeOptions,
-      });
-      renderAnimationPlayer(animationPlayerContainer, character, sffBytes, {
-        bridgeOptions: options.bridgeOptions,
+        onPaletteChange: (overridePaletteBytes) => {
+          spriteBrowser.setPaletteOverride(overridePaletteBytes);
+          animationPlayer.setPaletteOverride(overridePaletteBytes);
+        },
       });
     },
     bridgeOptions: options.bridgeOptions,
   });
   main.append(
     characteristicsContainer,
+    palettePickerContainer,
     spriteBrowserContainer,
     animationPlayerContainer,
   );

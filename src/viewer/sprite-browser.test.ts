@@ -47,6 +47,7 @@ function characterWithSprites(): CharacterData {
       },
     ],
     stateDefs: [],
+    palettes: [],
   };
 }
 
@@ -74,6 +75,7 @@ describe("renderSpriteBrowser", () => {
       animations: [],
       sprites: [],
       stateDefs: [],
+      palettes: [],
     };
     renderSpriteBrowser(root, character, sffBytes);
     expect(root.textContent).toContain("No sprites");

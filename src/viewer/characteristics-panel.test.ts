@@ -51,6 +51,7 @@ function characterWith(overrides: Partial<CharacterData>): CharacterData {
     animations: [],
     sprites: [],
     stateDefs: [],
+    palettes: [],
     ...overrides,
   };
 }

@@ -98,6 +98,8 @@ export interface CharacterData {
   animations: Animation[];
   sprites: SpriteGroup[];
   stateDefs: StateDef[];
+  /** File paths referenced by the `.def`'s `[Files]` section for player-color variants (e.g. "kfm1.act") — metadata only, this app never has their bytes since it only loads the 4 required files. See the palette picker (item 006). */
+  palettes: string[];
 }
 
 /**

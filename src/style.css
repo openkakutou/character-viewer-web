@@ -363,3 +363,33 @@
 .animation-player__preview-status--blank {
   font-style: italic;
 }
+
+/*
+ * Palette picker (backlog item 006). No error-state modifier class here —
+ * unlike the sprite browser/animation player's own preview status, this
+ * panel's status text is always either neutral (idle/active-override) or
+ * the WASM bridge's own validation error; see .vibe/decisions/010.
+ */
+.palette-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-2);
+  padding: var(--wuik-space-4);
+}
+
+.palette-picker__referenced {
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.palette-picker__upload-label {
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.palette-picker__status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}

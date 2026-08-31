@@ -80,7 +80,12 @@ superseded sprite decode is discarded rather than overwriting a newer
 selection's preview. `animation-player.test.ts` also uses
 `vi.useFakeTimers()`/`vi.advanceTimersByTimeAsync(...)` to deterministically
 drive playback's per-frame `setTimeout` chain rather than waiting on real
-wall-clock time.
+wall-clock time. `palette-picker.test.ts` reuses the same injectable
+`readFileBytes`/`resolveSpritePixels` pair to assert its own probe-validate-
+then-apply flow (success, the bridge's own validation error surfacing
+verbatim, and a superseded second upload never clobbering the first's
+still-active override) without a real `File`/`FileReader` round trip or a
+real WASM call.
 
 ## Beyond the test suite: real-browser verification
 
@@ -100,3 +105,14 @@ pixel data for the overlay's colors) rather than only asserting a stub was
 called with the right arguments. This isn't part of `npm test`; it's a
 manual verification step recorded in the relevant backlog item/decision,
 not a CI gate.
+
+The palette picker got the same treatment against a real character
+fixture and a real `.act` file: uploading a valid override and confirming
+both the sprite browser's selected sprite *and* the animation player's
+current frame visually recolor (screenshotted before/after, not just
+asserted), uploading a malformed file and confirming the real WASM
+bridge's own validation error text renders inline without disturbing the
+still-active previous override, and resetting back to the character's own
+colors — zero console errors throughout, and no bugs found needing a fix
+this time (unlike the sprite browser/animation player passes above, which
+did surface real issues at the time).

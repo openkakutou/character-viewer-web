@@ -62,7 +62,13 @@ flowchart LR
   at any zoom — see
   `.vibe/decisions/009-animation-player-timing-looping-and-collision-overlay-design.md`
   for the timing, looping, and overlay-color decisions none of this was
-  specified upstream.
+  specified upstream. `palette-picker.ts` (item 006) shows which `.act`
+  files the character's `.def` references (informational only — this app
+  never has their bytes) and lets the user upload one as an external
+  override, probe-validated against a real sprite before being applied —
+  see `.vibe/decisions/010-palette-picker-scope-and-external-override-only.md`
+  for why an embedded-bank picker isn't possible with the current WASM
+  contract, and "Data flow: applying a palette override" below.
 - **`wasm`** (`src/wasm/`) — the bridge to the `character` WebAssembly
   module. `bridge.ts` loads `wasm_exec.js` and instantiates `character.wasm`
   client-side (both fetched from `public/wasm/`, which is gitignored — see
@@ -119,3 +125,26 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
    frame as it plays, steps, or loops — each frame change triggers its own
    `resolveSpritePixels` round trip (also discarding a superseded response),
    rather than pre-decoding a whole animation's frames up front.
+
+## Data flow: applying a palette override
+
+1. `palette-picker.ts` reads `CharacterData.palettes` (referenced `.act`
+   file path strings from the `.def`'s `[Files]` section) and shows them as
+   plain informational text — this app only ever loaded the 4 required
+   character files, so it never has these files' actual bytes.
+2. Uploading any `.act` file reads its bytes (`readFileAsBytes`, shared
+   with `input`) and probe-validates them with one real `resolveSpritePixels`
+   call against the character's own first sprite, surfacing whatever error
+   the WASM bridge itself returns (e.g. a wrong byte count) rather than a
+   client-side length check — a same-size non-palette file still fails
+   this way, since the WASM module actually tries to decode it.
+3. Once validated, the override bytes are handed to `app` via
+   `onPaletteChange`, which forwards them to a small handle each of
+   `renderSpriteBrowser`/`renderAnimationPlayer` now returns
+   (`setPaletteOverride`) — re-resolving only the *currently shown*
+   sprite/frame with the new override, not a full re-render, so neither
+   screen loses its current selection, expanded groups, or playback state.
+4. A character switch (a fresh `onLoaded` call) always starts every screen,
+   including the palette picker, from a brand-new closure with no override
+   — nothing from a previous character's override bytes can carry forward
+   by construction.

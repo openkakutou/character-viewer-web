@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Users can now see which external palette (`.act`) files a loaded character references, and upload one to preview the sprite browser and animation player recolored with it. An invalid or wrong-sized file shows a clear error instead of crashing or silently being ignored, and a "reset" action returns to the character's own colors at any time.
+
 ## [0.6.0] - 2026-08-18
 
 ### Added

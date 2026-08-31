@@ -77,6 +77,14 @@ export interface SpriteBrowserOptions {
   ) => void;
 }
 
+/** Returned by `renderSpriteBrowser` so a caller (the palette picker) can push a new palette override without a full re-render, preserving the current selection/expanded groups. */
+export interface SpriteBrowserHandle {
+  /** Re-resolves the currently selected sprite (if any) with `overridePaletteBytes`, and applies it to every future selection until changed again. */
+  setPaletteOverride(overridePaletteBytes: Uint8Array | null): void;
+}
+
+const noopHandle: SpriteBrowserHandle = { setPaletteOverride() {} };
+
 /**
  * Renders the sprite browser into `root`, replacing its previous content
  * (and any in-flight selection state) entirely. `character === null` or
@@ -88,9 +96,9 @@ export function renderSpriteBrowser(
   character: CharacterData | null,
   sffBytes: Uint8Array | null,
   options: SpriteBrowserOptions = {},
-): void {
+): SpriteBrowserHandle {
   root.replaceChildren();
-  if (character === null || sffBytes === null) return;
+  if (character === null || sffBytes === null) return noopHandle;
   // Narrowed into a fresh binding: TS does not carry a parameter's narrowed
   // type into a nested closure (selectSprite, below) since it can't prove
   // the parameter isn't reassigned before the closure runs.
@@ -118,7 +126,7 @@ export function renderSpriteBrowser(
     empty.textContent = "No sprites found.";
     panel.appendChild(empty);
     root.appendChild(panel);
-    return;
+    return noopHandle;
   }
 
   const body = document.createElement("div");
@@ -146,11 +154,18 @@ export function renderSpriteBrowser(
   // ever applied.
   let selectionToken = 0;
   let selectedButton: HTMLButtonElement | null = null;
+  // The palette picker's active override, if any — applied to every
+  // resolve from here on. Re-resolving the last selection (rather than a
+  // full re-render) is how `setPaletteOverride` reflects a palette change
+  // without losing which group is expanded or which sprite is selected.
+  let activeOverride: Uint8Array | null = null;
+  let lastSelected: { sprite: Sprite; button: HTMLButtonElement } | null = null;
 
   function selectSprite(sprite: Sprite, button: HTMLButtonElement): void {
     selectedButton?.removeAttribute("aria-current");
     selectedButton = button;
     button.setAttribute("aria-current", "true");
+    lastSelected = { sprite, button };
 
     const token = ++selectionToken;
     canvas.hidden = true;
@@ -160,7 +175,7 @@ export function renderSpriteBrowser(
     resolvePixels(
       sffBytesNonNull,
       [[sprite.group, sprite.image]],
-      null,
+      activeOverride,
       options.bridgeOptions,
     ).then(([result]) => {
       if (token !== selectionToken) return; // superseded by a later selection
@@ -214,6 +229,13 @@ export function renderSpriteBrowser(
   body.append(list, preview);
   panel.appendChild(body);
   root.appendChild(panel);
+
+  return {
+    setPaletteOverride(overridePaletteBytes) {
+      activeOverride = overridePaletteBytes;
+      if (lastSelected) selectSprite(lastSelected.sprite, lastSelected.button);
+    },
+  };
 }
 
 function mountSprites(

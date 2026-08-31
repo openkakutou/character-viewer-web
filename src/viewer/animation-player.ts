@@ -179,6 +179,14 @@ export interface AnimationPlayerOptions {
   ) => void;
 }
 
+/** Returned by `renderAnimationPlayer` so a caller (the palette picker) can push a new palette override without a full re-render, preserving playback position/state. */
+export interface AnimationPlayerHandle {
+  /** Re-resolves the current frame with `overridePaletteBytes`, and applies it to every future frame resolve until changed again. */
+  setPaletteOverride(overridePaletteBytes: Uint8Array | null): void;
+}
+
+const noopHandle: AnimationPlayerHandle = { setPaletteOverride() {} };
+
 /**
  * Renders the animation player into `root`, replacing its previous content
  * (and any in-flight playback/decode state) entirely. `character === null`
@@ -190,9 +198,9 @@ export function renderAnimationPlayer(
   character: CharacterData | null,
   sffBytes: Uint8Array | null,
   options: AnimationPlayerOptions = {},
-): void {
+): AnimationPlayerHandle {
   root.replaceChildren();
-  if (character === null || sffBytes === null) return;
+  if (character === null || sffBytes === null) return noopHandle;
   // Narrowed into a fresh binding: TS does not carry a parameter's narrowed
   // type into a nested closure since it can't prove the parameter isn't
   // reassigned before the closure runs.
@@ -223,7 +231,7 @@ export function renderAnimationPlayer(
     empty.textContent = "No animations found.";
     panel.appendChild(empty);
     root.appendChild(panel);
-    return;
+    return noopHandle;
   }
 
   const sortedAnimations = [...character.animations].sort(
@@ -310,6 +318,11 @@ export function renderAnimationPlayer(
   // Guards against a slower, superseded decode overwriting a newer frame's
   // preview — same pattern as the sprite browser's own selectionToken.
   let selectionToken = 0;
+  // The palette picker's active override, if any — see setPaletteOverride
+  // below, which reuses showFrame() (already the "refresh what's currently
+  // displayed" entry point the collision-overlay toggle relies on) to
+  // apply a palette change without disturbing playback state.
+  let activeOverride: Uint8Array | null = null;
 
   function currentFrame(): Frame {
     return currentAnimation.frames[currentFrameIndex];
@@ -360,7 +373,7 @@ export function renderAnimationPlayer(
     resolvePixels(
       sffBytesNonNull,
       [[frame.group, frame.image]],
-      null,
+      activeOverride,
       options.bridgeOptions,
     )
       .then(([result]) => {
@@ -481,4 +494,11 @@ export function renderAnimationPlayer(
   select.value = String(sortedAnimations[0].number);
   updatePlayPauseButton();
   showFrame();
+
+  return {
+    setPaletteOverride(overridePaletteBytes) {
+      activeOverride = overridePaletteBytes;
+      showFrame();
+    },
+  };
 }

@@ -26,6 +26,11 @@ _Sources: `src/wasm/types.ts`_
 A collection of Sprites that share the same group index.
 _Sources: `src/wasm/types.ts`_
 
+## Palette override
+An external `.act` file's 256-color table, uploaded by the user and applied uniformly to every sprite this app resolves from then on, in place of each Sprite's own embedded palette bank. This app never has the bytes of a character's own referenced `.act` files (only their file names, listed for reference) — an override is the only way it can actually show a character recolored.
+**Do not confuse with:** Sprite, whose `palette` field names an embedded bank index this app cannot independently retrieve or select without an override.
+_Sources: `src/viewer/palette-picker.ts`, `src/wasm/bridge.ts`_
+
 ## State
 A named mode of a character's behavior (e.g. standing, an attack, a hit reaction): a state number, its type/move-type/physics classification, and the State controllers that run while it is active.
 **Do not confuse with:** Animation, which is the visual sequence of Frames a state typically plays but is referenced separately by number, not part of the state itself.

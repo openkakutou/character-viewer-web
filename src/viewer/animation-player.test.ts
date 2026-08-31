@@ -61,6 +61,7 @@ function characterWithAnimations(animations: Animation[]): CharacterData {
       },
     ],
     stateDefs: [],
+    palettes: [],
   };
 }
 
