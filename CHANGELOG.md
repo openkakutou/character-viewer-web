@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-31
+
 ### Added
 
 - Users can now see which external palette (`.act`) files a loaded character references, and upload one to preview the sprite browser and animation player recolored with it. An invalid or wrong-sized file shows a clear error instead of crashing or silently being ignored, and a "reset" action returns to the character's own colors at any time.
@@ -52,7 +54,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.0...v0.4.1
