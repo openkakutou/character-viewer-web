@@ -1,0 +1,18 @@
+---
+date: 2026-09-06
+status: accepted
+---
+# Workspace shell: `<wuik-tabs>` composition and section-switch detection
+
+**Context:** Backlog item 020 replaces the always-stacked, whole-page-scrolling layout with a launch screen + persistent workspace shell (`.ux/decisions/001-workspace-navigation-model.md`, `.ux/screens/workspace-shell.md`). The screen spec describes a `<wuik-app-shell>` with the vertical section list in its **sidebar** slot and each section's content in **main**. `web-ui-kit`'s shipped `<wuik-tabs orientation="vertical">` (`web-ui-kit` item 017) has no way to separate its tab-list strip from its tab-panel content — both live inside one custom element with no external programmatic tab-selection API and no `wuik-*-change` event (only the light-DOM `<wuik-tab-panel>` children's `hidden` attribute reflects the current selection).
+
+**Decision:**
+1. The entire `<wuik-tabs orientation="vertical">` element (tab-list strip + all four `<wuik-tab-panel>` children, each hosting one section's existing content) is placed into `<wuik-app-shell>`'s single unnamed/main slot. The shell's own named `sidebar` slot is left empty (it already collapses to zero size per `.vibe/decisions/003`). `<wuik-tabs>`'s host element gets its own `display: grid; grid-template-columns: auto 1fr;` from this app's stylesheet (light-DOM CSS on a shadow host controls that host's own generated box in the flattened render tree, the same technique `<wuik-app-shell>` itself already relies on for its toolbar/sidebar/main split), giving a narrow tab-list column beside a wide content column — visually equivalent to the spec's "sidebar + main" without requiring a kit change.
+2. Section switches (pausing the Animation player when it stops being visible; moving focus to the newly visible section's own heading) are detected with a single `MutationObserver` watching each `<wuik-tab-panel>`'s `hidden` attribute, not by listening for `<wuik-tabs>`'s internal click/keydown handling. The `hidden` attribute is the only public, documented signal `<wuik-tabs>` exposes for which panel is active; observing it works identically regardless of *how* the user switched (mouse click, arrow key, Home/End), and survives an unrelated future change to the kit's internal event wiring.
+
+**Reason:** Reaching into `<wuik-tabs>`'s shadow root to relocate only its internal tab-list would depend on undocumented internal structure the kit doesn't guarantee (no exposed part/slot for it — see the kit's own inventory gap: "no external programmatic tab-select API yet"). Composing the whole element as one unit and re-laying it out from outside uses only the kit's genuinely public surface (the host element's own box, plus the `hidden` attribute on light-DOM children we ourselves placed there since `<wuik-tab-panel>` has no shadow root of its own).
+
+**Rejected alternatives:**
+- *Wait for `web-ui-kit` to add a list/content-split API or a tab-change event before starting this item* — rejected: no such item exists in `web-ui-kit`'s backlog, and item 020 is unblocked today (its only stated dependency, `web-ui-kit` item 017, has shipped).
+- *Listen for `click`/`keydown` bubbling out of `<wuik-tabs>` to detect switches* — rejected: works (both events are composed and bubble past the shadow boundary), but couples this app to `<wuik-tabs>`'s specific set of interaction events; a `hidden`-attribute observer is one step more removed from the kit's internals and equally simple to implement.
+- *Put the four section containers directly as page-level tabs of our own hand-rolled control instead of `<wuik-tabs>`* — rejected: throws away the kit's existing keyboard-accessible roving-tabindex implementation (ARIA APG-compliant per `web-ui-kit`'s own decision 020) for no benefit.

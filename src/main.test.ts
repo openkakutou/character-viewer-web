@@ -6,75 +6,39 @@ import { resetWasmBridgeForTests } from "./wasm/bridge.ts";
 import type { WasmBridgeOptions } from "./wasm/bridge.ts";
 
 describe("renderApp", () => {
-  it("mounts a wuik-app-shell root frame with a toolbar title (including the version) and the character file input in the main content area", () => {
+  it("shows the launch screen (the character file input, full-frame) before any character is loaded", () => {
     const root = document.createElement("div");
 
     renderApp(root, "0.1.0");
 
-    const shell = root.querySelector("wuik-app-shell");
-    expect(shell).not.toBeNull();
-
-    const toolbar = shell?.querySelector('[slot="toolbar"]');
-    expect(toolbar?.tagName.toLowerCase()).toBe("wuik-toolbar");
-    expect(toolbar?.getAttribute("role")).toBe("banner");
-    expect(toolbar?.textContent).toBe("Character Viewer — v0.1.0");
-
-    const main = shell?.querySelector("main");
-    expect(main?.querySelector('input[type="file"]')).not.toBeNull();
+    expect(root.querySelector(".launch-screen")).not.toBeNull();
+    expect(root.querySelector('input[type="file"]')).not.toBeNull();
   });
 
-  it("does not slot anything into the sidebar region", () => {
+  it("does not show any workspace-shell chrome before a character is loaded", () => {
     const root = document.createElement("div");
 
     renderApp(root, "0.1.0");
 
-    expect(root.querySelector('[slot="sidebar"]')).toBeNull();
+    expect(root.querySelector("wuik-app-shell")).toBeNull();
+    expect(root.querySelector("wuik-tabs")).toBeNull();
   });
 
-  it("replaces previous content instead of appending on repeated renders", () => {
-    const root = document.createElement("div");
-
-    renderApp(root, "0.1.0");
-    renderApp(root, "0.2.0");
-
-    expect(root.querySelectorAll("wuik-app-shell")).toHaveLength(1);
-    expect(root.querySelector('[slot="toolbar"]')?.textContent).toBe(
-      "Character Viewer — v0.2.0",
-    );
-    expect(root.querySelectorAll('input[type="file"]')).toHaveLength(1);
-  });
-
-  it("renders without throwing and keeps a valid structure when given an empty version string", () => {
-    const root = document.createElement("div");
-
-    expect(() => renderApp(root, "")).not.toThrow();
-    expect(root.querySelector('[slot="toolbar"]')?.textContent).toBe(
-      "Character Viewer — v",
-    );
-  });
-
-  it("does not show the characteristics panel before any character is loaded", () => {
+  it("does not show the characteristics panel, sprite browser, or animation player before any character is loaded", () => {
     const root = document.createElement("div");
 
     renderApp(root, "0.1.0");
 
     expect(root.querySelector(".characteristics-panel")).toBeNull();
-  });
-
-  it("does not show the sprite browser before any character is loaded", () => {
-    const root = document.createElement("div");
-
-    renderApp(root, "0.1.0");
-
     expect(root.querySelector(".sprite-browser")).toBeNull();
+    expect(root.querySelector(".animation-player")).toBeNull();
   });
 
-  it("does not show the animation player before any character is loaded", () => {
+  it("renders without throwing for an empty version string", () => {
     const root = document.createElement("div");
 
-    renderApp(root, "0.1.0");
-
-    expect(root.querySelector(".animation-player")).toBeNull();
+    expect(() => renderApp(root, "")).not.toThrow();
+    expect(root.querySelector(".launch-screen")).not.toBeNull();
   });
 });
 
@@ -96,7 +60,7 @@ describe("renderApp — end-to-end character load", () => {
     resetWasmBridgeForTests();
   });
 
-  it("shows the characteristics panel with the loaded character's data once a real character finishes loading", async () => {
+  it("transitions from the launch screen to the workspace shell, landing on Characteristics, once a real character finishes loading", async () => {
     const root = document.createElement("div");
     renderApp(root, "0.1.0", { bridgeOptions: testOptions });
 
@@ -129,6 +93,17 @@ describe("renderApp — end-to-end character load", () => {
       expect(root.querySelector(".characteristics-panel")).not.toBeNull();
     });
 
+    // The launch screen is gone; the workspace shell (toolbar + sidebar)
+    // has replaced it entirely.
+    expect(root.querySelector(".launch-screen")).toBeNull();
+    expect(root.querySelector("wuik-app-shell")).not.toBeNull();
+    expect(root.querySelector('[slot="toolbar"]')?.textContent).toContain(
+      "v0.1.0",
+    );
+    expect(root.querySelector('[slot="toolbar"]')?.textContent).toContain(
+      "End To End Character",
+    );
+
     expect(root.textContent).toContain("End To End Character");
     const animCount = root.querySelector(
       ".characteristics-panel__stat--animations dd",
@@ -140,7 +115,9 @@ describe("renderApp — end-to-end character load", () => {
     ).map((el) => el.textContent);
     expect(stateItems).toEqual(["-1", "0", "200"]);
 
-    // v1-basic.sff carries exactly one sprite group with one sprite.
+    // v1-basic.sff carries exactly one sprite group with one sprite —
+    // mounted (though hidden behind Characteristics) as soon as the
+    // workspace shell exists.
     expect(root.querySelector(".sprite-browser")).not.toBeNull();
     expect(root.querySelector(".sprite-browser h3")?.textContent).toBe(
       "Sprites (1)",

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The app now opens on a dedicated full-frame launch screen to load the first character, then switches to a persistent workspace: a toolbar showing the character's name plus a vertical section list (Characteristics, Palette, Sprites, Animation) that shows one section at a time instead of stacking every screen on one long, scrolling page. Switching sections keeps each one's own state exactly as it was left — an expanded sprite group, the selected sprite or animation, the current playback frame, loop and collision-box toggles. Leaving the Animation section while it is playing pauses it, so it never keeps advancing frames off-screen; coming back shows it paused at the same frame rather than resuming on its own.
+
 ## [0.7.0] - 2026-08-31
 
 ### Added

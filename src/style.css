@@ -1,4 +1,37 @@
 /*
+ * Height chain for "no page-level scroll" (backlog item 020): every
+ * ancestor from `html`/`body` down to the workspace shell's own nav must
+ * have a *definite* height (not just `min-height`, which lets a box grow
+ * past its parent and reintroduce whole-page scroll), so `overflow: auto`
+ * further down actually has something bounded to clip against instead of
+ * growing to fit content. `100dvh` (not `100vh`) on `body` so a mobile
+ * browser's address-bar resize can't reintroduce page scroll either. See
+ * .ux/screens/workspace-shell.md and
+ * .vibe/decisions/011-workspace-shell-tabs-composition-and-section-switch-detection.md.
+ */
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+}
+
+/* Overrides the kit's own `min-height: 100%` (.vibe/decisions/003) with a
+   definite height, closing the height chain above. */
+wuik-app-shell {
+  height: 100%;
+}
+
+/*
  * App-level typography hierarchy for the root frame. Every value is a
  * `web-ui-kit` design token — nothing hardcoded — so this stays correct
  * across both themes with no maintenance here (see backlog item 011,
@@ -8,6 +41,75 @@
 .app-title {
   font-size: var(--wuik-font-size-lg);
   font-weight: var(--wuik-font-weight-bold);
+}
+
+/*
+ * Launch screen (backlog item 020): full-frame, centered, no toolbar/
+ * sidebar chrome. `height: 100%` closes the chain above; centering uses
+ * flexbox so a short viewport shrinks the file-input widget's own
+ * container (which scrolls internally, per its existing `overflow-y: auto`
+ * lists) rather than the page. See .ux/screens/launch-screen.md.
+ */
+.launch-screen {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: var(--wuik-space-4);
+  box-sizing: border-box;
+}
+
+.launch-screen wuik-panel {
+  max-width: 40em;
+  width: 100%;
+}
+
+/*
+ * Workspace shell sidebar navigation (backlog item 020): the whole vertical
+ * `<wuik-tabs>` unit (tab-list strip + every `<wuik-tab-panel>` section) is
+ * composed as one piece and laid out here as [narrow tab-list column | wide
+ * content column] via CSS Grid applied to the component's own host element
+ * — see
+ * .vibe/decisions/011-workspace-shell-tabs-composition-and-section-switch-detection.md
+ * for why (the component itself has no supported way to split list from
+ * content across `<wuik-app-shell>`'s sidebar/main slots).
+ */
+.workspace-shell__nav {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace-shell__character-name {
+  margin-left: var(--wuik-space-3);
+  color: var(--wuik-color-text-secondary);
+}
+
+/*
+ * `<wuik-tab-panel>` has no shadow root of its own (plain light DOM, see
+ * the ADR above), so its content area can be bounded and made to scroll
+ * internally directly from this stylesheet — the one place actual
+ * clipping happens, keeping the tab-list column itself unaffected.
+ *
+ * The `display: block` only applies `:not([hidden])` — `<wuik-tabs>` hides
+ * every non-active panel via the plain `hidden` attribute, which the
+ * browser's own UA stylesheet turns into `display: none`. An unconditional
+ * `display: block` here would have the same (author > UA) specificity and
+ * win the cascade, silently defeating that and showing every section
+ * stacked at once — caught via real-browser verification, not jsdom.
+ */
+.workspace-shell__section:not([hidden]) {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.workspace-shell__section-content {
+  height: 100%;
 }
 
 /*

@@ -49,6 +49,18 @@ Native browser objects that jsdom doesn't construct in a test-friendly way
 (partial) `DataTransfer`, which isn't implemented at all in this jsdom
 version.
 
+`src/shell/workspace-shell.test.ts` imports `"@openkakutou/web-ui-kit"` for
+its own side effect (registering the `wuik-*` custom elements) at the top
+of the test file — `main.ts` (the app's real composition root) already
+does this once for the real app, but a test that imports `workspace-shell.ts`
+directly, without going through `main.ts`, needs its own registration to
+get real `<wuik-tabs>` shadow-DOM behavior (tab buttons, `hidden`
+toggling) instead of an inert, unregistered element. Switching tabs in a
+test also needs `await vi.advanceTimersByTimeAsync(0)` before reading the
+result: `<wuik-tabs>` builds its tab buttons from a `slotchange` event that
+isn't guaranteed to flush synchronously under jsdom, the same reason
+`web-ui-kit`'s own test suite ships a comparable flush helper.
+
 Programmatically calling `.click()` on a checkbox in this project's pinned
 jsdom version does not reliably synthesize a `"change"` event, even though
 it does toggle `.checked` before dispatching `"click"`. `animation-player.ts`

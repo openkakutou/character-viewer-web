@@ -179,13 +179,25 @@ export interface AnimationPlayerOptions {
   ) => void;
 }
 
-/** Returned by `renderAnimationPlayer` so a caller (the palette picker) can push a new palette override without a full re-render, preserving playback position/state. */
+/** Returned by `renderAnimationPlayer` so a caller (the palette picker, or the workspace shell) can drive it without a full re-render, preserving playback position/state. */
 export interface AnimationPlayerHandle {
   /** Re-resolves the current frame with `overridePaletteBytes`, and applies it to every future frame resolve until changed again. */
   setPaletteOverride(overridePaletteBytes: Uint8Array | null): void;
+  /**
+   * Stops playback at the current frame, same as pressing Pause — a no-op
+   * if playback isn't running. Used by the workspace shell (backlog item
+   * 020) to auto-pause when the Animation section is navigated away from,
+   * so a self-rescheduling timer doesn't keep decoding frames for a canvas
+   * nobody is looking at, and the section resumes exactly where it was left
+   * rather than auto-playing again on return.
+   */
+  pause(): void;
 }
 
-const noopHandle: AnimationPlayerHandle = { setPaletteOverride() {} };
+const noopHandle: AnimationPlayerHandle = {
+  setPaletteOverride() {},
+  pause() {},
+};
 
 /**
  * Renders the animation player into `root`, replacing its previous content
@@ -446,11 +458,16 @@ export function renderAnimationPlayer(
     showFrame();
   }
 
+  function pausePlayback(): void {
+    if (!playing) return;
+    playing = false;
+    clearTimer();
+    updatePlayPauseButton();
+  }
+
   playPauseButton.addEventListener("click", () => {
     if (playing) {
-      playing = false;
-      clearTimer();
-      updatePlayPauseButton();
+      pausePlayback();
       return;
     }
     playing = true;
@@ -500,5 +517,6 @@ export function renderAnimationPlayer(
       activeOverride = overridePaletteBytes;
       showFrame();
     },
+    pause: pausePlayback,
   };
 }

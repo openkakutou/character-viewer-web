@@ -12,8 +12,9 @@ itself.
 
 ```mermaid
 flowchart LR
-    app["app\n(src/main.ts)"] --> input["input\n(src/input/)"]
-    app --> viewer["viewer\n(src/viewer/)"]
+    app["app\n(src/main.ts)"] --> shell["shell\n(src/shell/)"]
+    shell --> input["input\n(src/input/)"]
+    shell --> viewer["viewer\n(src/viewer/)"]
     input --> wasm["wasm\n(src/wasm/)"]
     viewer --> wasm
     wasm -.->|fetch + WebAssembly.instantiate| module["character.wasm\n(public/wasm/, gitignored)"]
@@ -23,10 +24,29 @@ flowchart LR
 ```
 
 - **`app`** (`src/main.ts`, `src/version.ts`, `src/style.css`) — the entry
-  point. Builds the root layout (the org's shared `@openkakutou/web-ui-kit`
-  app shell: a toolbar plus a main content region), mounts the `input`
-  module's view into it, and wires its load callback to the `viewer`
-  module's panel.
+  point. Delegates the whole UI to `shell`, forwarding the app version and
+  any injectable WASM bridge options.
+- **`shell`** (`src/shell/`) — the launch screen → workspace transition
+  (item 020). `launch-screen.ts` renders a full-frame wrapper around
+  `input`'s existing file-input view; nothing else exists on screen until a
+  character loads. Once it does, `workspace-shell.ts` replaces it entirely
+  with a persistent `<wuik-app-shell>`: a toolbar (app title/version, the
+  character's name) plus a vertical `<wuik-tabs orientation="vertical">`
+  unit holding one `<wuik-tab-panel>` per `viewer` screen (Characteristics,
+  Palette, Sprites, Animation) — composed as a single piece laid out as a
+  narrow tab-list column beside a wide content column via CSS Grid on the
+  component's own host element, since `<wuik-tabs>` has no supported way to
+  split its list from its content across `<wuik-app-shell>`'s own
+  sidebar/main slots (see
+  `.vibe/decisions/011-workspace-shell-tabs-composition-and-section-switch-detection.md`).
+  Every section is rendered once and stays mounted — `<wuik-tabs>` only
+  toggles a panel's `hidden` attribute when switching, never destroying or
+  re-rendering it, which is how each section keeps its own selection,
+  expanded groups, and playback position across switches for free. A single
+  `MutationObserver` watching every panel's `hidden` attribute drives the
+  two behaviors `<wuik-tabs>` itself has no event for: pausing the
+  animation player when its section stops being visible, and moving focus
+  to the newly visible section's own heading.
 - **`input`** (`src/input/`) — the character file input. `character-file-input.ts`
   holds the DOM-free logic: it accumulates the 4 required files
   (`.def`/`.air`/`.sff`/`.cns`) across any number of picker/drop gestures,
@@ -35,12 +55,14 @@ flowchart LR
   and calls into `wasm` once all 4 are present. `character-file-input-view.ts`
   renders the file-picker + drag-and-drop UI on top of that logic.
 - **`viewer`** (`src/viewer/`) — screens that display an already-loaded
-  character's data. `characteristics-panel.ts` renders the first such
-  screen: name, animation count, total sprite count, and the sorted list
-  of Statedef numbers, appearing inline once a character loads rather
-  than behind a tab/sidebar navigation — see
-  `.vibe/decisions/005-characteristics-panel-inline-no-tab-navigation-yet.md`.
-  `sprite-browser.ts` renders alongside it: a collapsed-by-default list of
+  character's data, each hosted as one section of `shell`'s workspace
+  (item 020; each screen's own render function is unchanged by that move —
+  see `.vibe/decisions/005-characteristics-panel-inline-no-tab-navigation-yet.md`
+  and `.vibe/decisions/008-sprite-browser-stays-inline-tab-navigation-still-deferred.md`
+  for why tab/sidebar navigation was deliberately deferred until now).
+  `characteristics-panel.ts` renders the Characteristics section: name,
+  animation count, total sprite count, and the sorted list of Statedef
+  numbers. `sprite-browser.ts` renders the Sprites section: a collapsed-by-default list of
   sprite groups (expanding one lazily mounts only its own sprites, so a
   sheet with hundreds of sprites never dumps hundreds of DOM rows at once)
   and a preview `<canvas>` that decodes and shows the selected sprite's
@@ -48,7 +70,7 @@ flowchart LR
   a fixed-size stage (`computeScaleToFit`) — see
   `.vibe/decisions/007-sprite-preview-raw-canvas-not-wuik-viewport.md` for
   why this is a plain `<canvas>` rather than `web-ui-kit`'s `<wuik-viewport>`.
-  `animation-player.ts` renders alongside both: plays an `Animation`'s
+  `animation-player.ts` renders the Animation section: plays an `Animation`'s
   `Frame`s back on a `setTimeout` chain paced by each frame's own `time`
   (in game ticks, `MS_PER_TICK` = 1/60s), decoding and drawing the current
   frame's sprite the same way the sprite browser does, reusing its
@@ -96,7 +118,8 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
 
 ## Data flow: loading a character
 
-1. The user picks or drops files onto `input`'s view.
+1. The user picks or drops files onto `shell`'s launch screen, which hosts
+   `input`'s view unchanged.
 2. `input`'s logic classifies each file by extension, accumulates it into a
    per-kind slot, and — once all 4 required kinds are filled with no
    unresolved conflict — reads each file's bytes (via `FileReader`, not
@@ -108,13 +131,15 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
 4. `input`'s view reports success (character loaded) or a typed failure
    (a specific unreadable file, or the WASM module's own parse error) back
    to the caller — never a thrown exception at any layer.
-5. On success, `app` passes the loaded `CharacterData` — and the raw
+5. On success, `shell` replaces the launch screen entirely with the
+   workspace shell, passing the loaded `CharacterData` — and the raw
    `.sff` bytes just read, threaded through unchanged (see
    `.vibe/decisions/006-sff-bytes-threaded-through-load-result-for-on-demand-pixel-decode.md`)
-   — to `viewer`'s characteristics panel and sprite browser, both of which
-   render immediately: no navigation step. Loading a different character
-   later repeats this from step 1 and fully replaces both panels' previous
-   content.
+   — to every `viewer` section's own render function, all mounted at once
+   inside their `<wuik-tab-panel>`. Only Characteristics starts visible;
+   the rest wait behind the sidebar. Reloading the page starts over from
+   step 1 — session state (loaded character, active section) is not
+   persisted across a reload.
 6. Selecting a sprite in the sprite browser is a separate, later
    round trip: it calls `wasm.resolveSpritePixels` with the `.sff` bytes
    from step 5 and just that one sprite's `(group, image)`, decoding pixels

@@ -576,4 +576,100 @@ describe("renderAnimationPlayer", () => {
     renderAnimationPlayer(root, null, null);
     expect(root.children).toHaveLength(0);
   });
+
+  describe("pause() (backlog item 020 — auto-pause when the section is hidden)", () => {
+    it("stops an in-progress playback at the current frame and shows the paused control state", async () => {
+      const root = document.createElement("div");
+      const drawPixels = vi.fn();
+      const resolveSpritePixels = vi.fn(
+        async (): Promise<SpritePixelResult[]> => [okResult(20, 20)],
+      );
+      const character = characterWithAnimations([
+        {
+          number: 0,
+          frames: [
+            frame({ group: 0, image: 0, time: 3 }),
+            frame({ group: 0, image: 1, time: 5 }),
+          ],
+          loopStart: 0,
+        },
+      ]);
+      const handle = renderAnimationPlayer(root, character, sffBytes, {
+        resolveSpritePixels,
+        drawPixels,
+      });
+      await vi.waitFor(() => expect(drawPixels).toHaveBeenCalledTimes(1));
+
+      root
+        .querySelector<HTMLButtonElement>(".animation-player__play-pause")
+        ?.click();
+      await vi.advanceTimersByTimeAsync(3 * MS_PER_TICK);
+      expect(root.textContent).toContain("Frame 2 / 2");
+
+      handle.pause();
+
+      const playButton = root.querySelector<HTMLButtonElement>(
+        ".animation-player__play-pause",
+      );
+      expect(playButton?.getAttribute("aria-pressed")).toBe("false");
+      expect(playButton?.textContent).toContain("Play");
+
+      // The pending tick for frame 2's own 5-tick hold must not fire and
+      // advance further (or wrap, if looping) once paused.
+      await vi.advanceTimersByTimeAsync(50 * MS_PER_TICK);
+      expect(root.textContent).toContain("Frame 2 / 2");
+      expect(drawPixels).toHaveBeenCalledTimes(2);
+    });
+
+    it("is a no-op when playback is already paused", async () => {
+      const root = document.createElement("div");
+      const drawPixels = vi.fn();
+      const resolveSpritePixels = vi.fn(
+        async (): Promise<SpritePixelResult[]> => [okResult(20, 20)],
+      );
+      const character = characterWithAnimations([
+        { number: 0, frames: [frame(), frame()], loopStart: 0 },
+      ]);
+      const handle = renderAnimationPlayer(root, character, sffBytes, {
+        resolveSpritePixels,
+        drawPixels,
+      });
+      await vi.waitFor(() => expect(drawPixels).toHaveBeenCalledTimes(1));
+
+      expect(() => handle.pause()).not.toThrow();
+      expect(root.textContent).toContain("Frame 1 / 2");
+      const playButton = root.querySelector<HTMLButtonElement>(
+        ".animation-player__play-pause",
+      );
+      expect(playButton?.textContent).toContain("Play");
+    });
+
+    it("does not decode or draw a new frame as a side effect of pausing", async () => {
+      const root = document.createElement("div");
+      const drawPixels = vi.fn();
+      const resolveSpritePixels = vi.fn(
+        async (): Promise<SpritePixelResult[]> => [okResult(20, 20)],
+      );
+      const character = characterWithAnimations([
+        {
+          number: 0,
+          frames: [frame({ time: 3 }), frame({ time: 3 })],
+          loopStart: 0,
+        },
+      ]);
+      const handle = renderAnimationPlayer(root, character, sffBytes, {
+        resolveSpritePixels,
+        drawPixels,
+      });
+      await vi.waitFor(() => expect(drawPixels).toHaveBeenCalledTimes(1));
+
+      root
+        .querySelector<HTMLButtonElement>(".animation-player__play-pause")
+        ?.click();
+      handle.pause();
+
+      expect(drawPixels).toHaveBeenCalledTimes(1);
+      expect(resolveSpritePixels).toHaveBeenCalledTimes(1);
+    });
+  });
 });
