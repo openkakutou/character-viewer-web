@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-06
+
 ### Added
 
 - The app now opens on a dedicated full-frame launch screen to load the first character, then switches to a persistent workspace: a toolbar showing the character's name plus a vertical section list (Characteristics, Palette, Sprites, Animation) that shows one section at a time instead of stacking every screen on one long, scrolling page. Switching sections keeps each one's own state exactly as it was left — an expanded sprite group, the selected sprite or animation, the current playback frame, loop and collision-box toggles. Leaving the Animation section while it is playing pauses it, so it never keeps advancing frames off-screen; coming back shows it paused at the same frame rather than resuming on its own.
@@ -58,7 +60,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.4.1...v0.5.0
