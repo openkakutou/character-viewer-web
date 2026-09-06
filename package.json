@@ -1,7 +1,7 @@
 {
   "name": "character-viewer-web",
   "private": true,
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Static web viewer for OpenKakutou MUGEN/Ikemen GO character files — sprites, palettes, animations, and an in-game preview mode.",
   "type": "module",
   "engines": {
