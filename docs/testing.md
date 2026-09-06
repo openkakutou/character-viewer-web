@@ -76,6 +76,18 @@ asserts against the stub's recorded arguments (pixels/width/height)
 instead. The real `defaultDrawPixels` implementation is only exercised via
 real-browser verification (see below), not the jsdom test suite.
 
+Under `vi.useFakeTimers()`, `vi.waitFor(...)` can itself advance fake time
+while polling its condition — harmless for a component whose timer chain
+only starts on an explicit later action (`animation-player.test.ts`'s own
+Play button), but for `animation-triggers.ts` a trigger click starts a
+self-rescheduling loop immediately, so a `vi.waitFor` used right after that
+click can let one or more ticks fire non-deterministically before the
+`await` resolves, inflating a `drawPixels` call count the test didn't
+expect. `animation-triggers.test.ts` waits for the click's own pending
+microtask with `await vi.advanceTimersByTimeAsync(0)` instead — that
+resolves the in-flight decode promise without moving fake time forward far
+enough to reach the next scheduled tick.
+
 ## Testable-by-construction patterns
 
 Every layer that touches the outside world (network `fetch`, WASM

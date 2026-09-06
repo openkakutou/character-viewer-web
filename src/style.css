@@ -467,6 +467,112 @@ wuik-app-shell {
 }
 
 /*
+ * In-game preview / animation triggers (backlog item 008). Same panel/stage
+ * rhythm as the sprite browser and animation player above; the list sits on
+ * one side (independently scrollable, same sizing as the sprite browser's
+ * own group list) with the preview stage on the other, since triggering is
+ * the only control here — no dropdown/step/loop/collision-overlay chrome,
+ * see .vibe/decisions/012-in-game-preview-trigger-buttons-loop-and-stop-toggle.md.
+ */
+.animation-triggers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-3);
+  padding: var(--wuik-space-4);
+}
+
+.animation-triggers__empty {
+  margin: 0;
+  color: var(--wuik-color-text-secondary);
+}
+
+.animation-triggers__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wuik-space-4);
+}
+
+.animation-triggers__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-1);
+  min-width: 12em;
+  max-width: 16em;
+  max-height: 20em;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.animation-triggers__item {
+  margin: 0;
+}
+
+.animation-triggers__trigger {
+  width: 100%;
+  padding: var(--wuik-space-1) var(--wuik-space-2);
+  text-align: left;
+  background: none;
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-1);
+  color: var(--wuik-color-text);
+  cursor: pointer;
+}
+
+.animation-triggers__trigger:hover {
+  background-color: var(--wuik-color-surface);
+}
+
+.animation-triggers__trigger[aria-pressed="true"] {
+  background-color: var(--wuik-color-surface);
+  border-color: var(--wuik-color-accent);
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.animation-triggers__preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-2);
+  flex: 1;
+  min-width: 12em;
+}
+
+.animation-triggers__now-playing {
+  margin: 0;
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.animation-triggers__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16em;
+  background-color: var(--wuik-color-surface);
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-2);
+}
+
+.animation-triggers__canvas {
+  image-rendering: pixelated;
+}
+
+.animation-triggers__status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.animation-triggers__status--error {
+  color: var(--wuik-color-text);
+}
+
+.animation-triggers__status--blank {
+  font-style: italic;
+}
+
+/*
  * Palette picker (backlog item 006). No error-state modifier class here —
  * unlike the sprite browser/animation player's own preview status, this
  * panel's status text is always either neutral (idle/active-override) or

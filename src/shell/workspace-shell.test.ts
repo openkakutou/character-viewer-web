@@ -129,7 +129,7 @@ describe("renderWorkspaceShell", () => {
     expect(root.querySelector('[slot="sidebar"]')).toBeNull();
   });
 
-  it("builds a vertical wuik-tabs sidebar with exactly the 4 in-scope sections, in order", () => {
+  it("builds a vertical wuik-tabs sidebar with exactly the 5 in-scope sections, in order", () => {
     const root = document.createElement("div");
     renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
 
@@ -141,6 +141,7 @@ describe("renderWorkspaceShell", () => {
       "Palette",
       "Sprites",
       "Animation",
+      "In-game preview",
     ]);
   });
 
@@ -152,6 +153,7 @@ describe("renderWorkspaceShell", () => {
     expect(root.querySelector(".palette-picker")).not.toBeNull();
     expect(root.querySelector(".sprite-browser")).not.toBeNull();
     expect(root.querySelector(".animation-player")).not.toBeNull();
+    expect(root.querySelector(".animation-triggers")).not.toBeNull();
 
     const panels = Array.from(
       root.querySelectorAll<HTMLElement>("wuik-tab-panel"),
@@ -237,6 +239,36 @@ describe("renderWorkspaceShell", () => {
       // Advancing time after leaving must not silently resume playback.
       await vi.advanceTimersByTimeAsync(1000);
       expect(playButton?.getAttribute("aria-pressed")).toBe("false");
+    } finally {
+      root.remove();
+    }
+  });
+
+  it("pauses In-game preview playback when the user navigates to a different section, without resuming it automatically on return", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    try {
+      renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
+
+      (await tabButton(root, 4)).click(); // In-game preview
+      await vi.waitFor(() =>
+        expect(root.querySelector(".animation-triggers")).not.toBeNull(),
+      );
+
+      const triggerButton = root.querySelector<HTMLButtonElement>(
+        ".animation-triggers__trigger",
+      );
+      triggerButton?.click();
+      expect(triggerButton?.getAttribute("aria-pressed")).toBe("true");
+
+      (await tabButton(root, 0)).click(); // Characteristics — navigate away while playing
+      await vi.waitFor(() =>
+        expect(triggerButton?.getAttribute("aria-pressed")).toBe("false"),
+      );
+
+      // Advancing time after leaving must not silently resume playback.
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(triggerButton?.getAttribute("aria-pressed")).toBe("false");
     } finally {
       root.remove();
     }

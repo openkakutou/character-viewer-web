@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The workspace now has an "In-game preview" section listing every one of the loaded character's animations as its own button. Clicking one plays it live, looping continuously to show how it actually behaves in a match. Clicking a different animation while one is playing switches to it immediately with no overlap or stuck frame, and clicking the currently playing animation's own button again stops it, freezing on its last frame.
+
 ## [0.8.0] - 2026-09-06
 
 ### Added

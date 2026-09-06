@@ -15,8 +15,11 @@ flowchart LR
     app["app\n(src/main.ts)"] --> shell["shell\n(src/shell/)"]
     shell --> input["input\n(src/input/)"]
     shell --> viewer["viewer\n(src/viewer/)"]
+    shell --> gamemode["game-mode\n(src/game-mode/)"]
     input --> wasm["wasm\n(src/wasm/)"]
     viewer --> wasm
+    gamemode --> wasm
+    gamemode --> viewer
     wasm -.->|fetch + WebAssembly.instantiate| module["character.wasm\n(public/wasm/, gitignored)"]
     scripts["scripts\n(scripts/download-wasm.mjs)"] -.->|fetches at dev-setup time| module
 
@@ -32,8 +35,9 @@ flowchart LR
   character loads. Once it does, `workspace-shell.ts` replaces it entirely
   with a persistent `<wuik-app-shell>`: a toolbar (app title/version, the
   character's name) plus a vertical `<wuik-tabs orientation="vertical">`
-  unit holding one `<wuik-tab-panel>` per `viewer` screen (Characteristics,
-  Palette, Sprites, Animation) — composed as a single piece laid out as a
+  unit holding one `<wuik-tab-panel>` per screen (Characteristics, Palette,
+  Sprites, Animation from `viewer`; In-game preview from `game-mode`) —
+  composed as a single piece laid out as a
   narrow tab-list column beside a wide content column via CSS Grid on the
   component's own host element, since `<wuik-tabs>` has no supported way to
   split its list from its content across `<wuik-app-shell>`'s own
@@ -45,8 +49,9 @@ flowchart LR
   expanded groups, and playback position across switches for free. A single
   `MutationObserver` watching every panel's `hidden` attribute drives the
   two behaviors `<wuik-tabs>` itself has no event for: pausing the
-  animation player when its section stops being visible, and moving focus
-  to the newly visible section's own heading.
+  animation player and, separately, the in-game preview's own playback when
+  their section stops being visible, and moving focus to the newly visible
+  section's own heading.
 - **`input`** (`src/input/`) — the character file input. `character-file-input.ts`
   holds the DOM-free logic: it accumulates the 4 required files
   (`.def`/`.air`/`.sff`/`.cns`) across any number of picker/drop gestures,
@@ -91,6 +96,23 @@ flowchart LR
   see `.vibe/decisions/010-palette-picker-scope-and-external-override-only.md`
   for why an embedded-bank picker isn't possible with the current WASM
   contract, and "Data flow: applying a palette override" below.
+- **`game-mode`** (`src/game-mode/`) — the in-game preview (item 008).
+  `animation-triggers.ts` renders the In-game preview section: a scrollable
+  list with one button per animation, played live the moment its button is
+  clicked. Unlike `viewer`'s own Animation section, there is no
+  dropdown/step/manual-loop/collision-overlay UI here — clicking a button is
+  the only control, and playback loops continuously by default (no opt-in
+  checkbox) so it reads as "how this actually behaves in a match" rather
+  than a frame inspector; clicking the currently playing animation's own
+  button again stops it in place instead of restarting it, since that
+  button doubles as the only stop affordance this section has — see
+  `.vibe/decisions/012-in-game-preview-trigger-buttons-loop-and-stop-toggle.md`.
+  It reuses `viewer/animation-player.ts`'s already-exported pure timing
+  helpers (`effectiveTickDuration`, `isBlankFrame`, `computeNextFrameIndex`)
+  and `viewer/sprite-browser.ts`'s decode/draw helpers
+  (`computeScaleToFit`, `defaultDrawPixels`) rather than re-implementing
+  them, and returns the same small `{ pause() }` handle shape as the
+  Animation section for `shell`'s own auto-pause-on-navigate-away.
 - **`wasm`** (`src/wasm/`) — the bridge to the `character` WebAssembly
   module. `bridge.ts` loads `wasm_exec.js` and instantiates `character.wasm`
   client-side (both fetched from `public/wasm/`, which is gitignored — see
@@ -135,11 +157,11 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
    workspace shell, passing the loaded `CharacterData` — and the raw
    `.sff` bytes just read, threaded through unchanged (see
    `.vibe/decisions/006-sff-bytes-threaded-through-load-result-for-on-demand-pixel-decode.md`)
-   — to every `viewer` section's own render function, all mounted at once
-   inside their `<wuik-tab-panel>`. Only Characteristics starts visible;
-   the rest wait behind the sidebar. Reloading the page starts over from
-   step 1 — session state (loaded character, active section) is not
-   persisted across a reload.
+   — to every `viewer` section's own render function plus `game-mode`'s
+   In-game preview, all mounted at once inside their `<wuik-tab-panel>`.
+   Only Characteristics starts visible; the rest wait behind the sidebar.
+   Reloading the page starts over from step 1 — session state (loaded
+   character, active section) is not persisted across a reload.
 6. Selecting a sprite in the sprite browser is a separate, later
    round trip: it calls `wasm.resolveSpritePixels` with the `.sff` bytes
    from step 5 and just that one sprite's `(group, image)`, decoding pixels
@@ -149,7 +171,9 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
 7. The animation player follows the same on-demand decode pattern per
    frame as it plays, steps, or loops — each frame change triggers its own
    `resolveSpritePixels` round trip (also discarding a superseded response),
-   rather than pre-decoding a whole animation's frames up front.
+   rather than pre-decoding a whole animation's frames up front. The
+   in-game preview's own trigger list decodes the same way, one frame at a
+   time, for whichever animation was last clicked.
 
 ## Data flow: applying a palette override
 

@@ -10,6 +10,7 @@
 // sidebar/main slots, and why a `MutationObserver` on each panel's `hidden`
 // attribute (not `<wuik-tabs>`'s own click/keydown handling) drives
 // auto-pause and focus-on-switch.
+import { renderAnimationTriggers } from "../game-mode/animation-triggers.ts";
 import type { CharacterFileInputOptions } from "../input/character-file-input.ts";
 import { renderAnimationPlayer } from "../viewer/animation-player.ts";
 import { renderCharacteristicsPanel } from "../viewer/characteristics-panel.ts";
@@ -101,6 +102,7 @@ export function renderWorkspaceShell(
   const palette = createSection(tabs, "Palette");
   const sprites = createSection(tabs, "Sprites");
   const animation = createSection(tabs, "Animation");
+  const inGamePreview = createSection(tabs, "In-game preview");
 
   shell.appendChild(tabs);
   root.appendChild(shell);
@@ -114,6 +116,12 @@ export function renderWorkspaceShell(
   );
   const animationPlayer = renderAnimationPlayer(
     animation.container,
+    character,
+    sffBytes,
+    { bridgeOptions: options.bridgeOptions },
+  );
+  const animationTriggers = renderAnimationTriggers(
+    inGamePreview.container,
     character,
     sffBytes,
     { bridgeOptions: options.bridgeOptions },
@@ -136,12 +144,21 @@ export function renderWorkspaceShell(
         if (panel === animation.panel) {
           animationPlayer.pause();
         }
+        if (panel === inGamePreview.panel) {
+          animationTriggers.pause();
+        }
       } else {
         focusSectionHeading(panel);
       }
     }
   });
-  for (const section of [characteristics, palette, sprites, animation]) {
+  for (const section of [
+    characteristics,
+    palette,
+    sprites,
+    animation,
+    inGamePreview,
+  ]) {
     observer.observe(section.panel, {
       attributes: true,
       attributeFilter: ["hidden"],
