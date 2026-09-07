@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-07
+
 ### Added
 
 - The workspace now has a "Special Moves" section listing every one of the loaded character's states as its own button. Clicking one force-plays that state's associated animation live in its own preview, looping continuously — the same trigger/replace/click-again-to-stop behavior as the existing "In-game preview" animations list, but keyed by combat state instead of by raw animation number. A state with no clearly associated animation (its animation reference is missing, points at nothing loaded, or is a formula this app doesn't evaluate) is shown with a plain "no animation" note in the list and, once clicked, a clear status message — never a silent failure or a broken image.
@@ -70,7 +72,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.6.0...v0.7.0
