@@ -573,6 +573,124 @@ wuik-app-shell {
 }
 
 /*
+ * Special Moves list (backlog item 009). A near-twin of the in-game
+ * preview/animation triggers block above — its own section, own stage —
+ * see .vibe/decisions/013-special-moves-own-section-not-merged-into-in-game-preview.md.
+ * The only new pieces are `__hint` (a muted inline cue on a list row with
+ * no resolvable animation, never a disabled-looking row) and
+ * `--unavailable` (the distinct, non-error status shown once such a row is
+ * clicked).
+ */
+.special-move-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-3);
+  padding: var(--wuik-space-4);
+}
+
+.special-move-list__empty {
+  margin: 0;
+  color: var(--wuik-color-text-secondary);
+}
+
+.special-move-list__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wuik-space-4);
+}
+
+.special-move-list__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-1);
+  min-width: 12em;
+  max-width: 16em;
+  max-height: 20em;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.special-move-list__item {
+  margin: 0;
+}
+
+.special-move-list__trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--wuik-space-2);
+  width: 100%;
+  padding: var(--wuik-space-1) var(--wuik-space-2);
+  text-align: left;
+  background: none;
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-1);
+  color: var(--wuik-color-text);
+  cursor: pointer;
+}
+
+.special-move-list__trigger:hover {
+  background-color: var(--wuik-color-surface);
+}
+
+.special-move-list__trigger[aria-pressed="true"] {
+  background-color: var(--wuik-color-surface);
+  border-color: var(--wuik-color-accent);
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.special-move-list__hint {
+  font-size: var(--wuik-font-size-sm);
+  font-style: italic;
+  color: var(--wuik-color-text-secondary);
+}
+
+.special-move-list__preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-2);
+  flex: 1;
+  min-width: 12em;
+}
+
+.special-move-list__now-playing {
+  margin: 0;
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.special-move-list__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16em;
+  background-color: var(--wuik-color-surface);
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-2);
+}
+
+.special-move-list__canvas {
+  image-rendering: pixelated;
+}
+
+.special-move-list__status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.special-move-list__status--error {
+  color: var(--wuik-color-text);
+}
+
+.special-move-list__status--blank,
+.special-move-list__status--unavailable {
+  font-style: italic;
+}
+
+/*
  * Palette picker (backlog item 006). No error-state modifier class here —
  * unlike the sprite browser/animation player's own preview status, this
  * panel's status text is always either neutral (idle/active-override) or

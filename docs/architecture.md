@@ -36,7 +36,8 @@ flowchart LR
   with a persistent `<wuik-app-shell>`: a toolbar (app title/version, the
   character's name) plus a vertical `<wuik-tabs orientation="vertical">`
   unit holding one `<wuik-tab-panel>` per screen (Characteristics, Palette,
-  Sprites, Animation from `viewer`; In-game preview from `game-mode`) —
+  Sprites, Animation from `viewer`; In-game preview, Special Moves from
+  `game-mode`) —
   composed as a single piece laid out as a
   narrow tab-list column beside a wide content column via CSS Grid on the
   component's own host element, since `<wuik-tabs>` has no supported way to
@@ -96,7 +97,7 @@ flowchart LR
   see `.vibe/decisions/010-palette-picker-scope-and-external-override-only.md`
   for why an embedded-bank picker isn't possible with the current WASM
   contract, and "Data flow: applying a palette override" below.
-- **`game-mode`** (`src/game-mode/`) — the in-game preview (item 008).
+- **`game-mode`** (`src/game-mode/`) — the in-game preview (items 008, 009).
   `animation-triggers.ts` renders the In-game preview section: a scrollable
   list with one button per animation, played live the moment its button is
   clicked. Unlike `viewer`'s own Animation section, there is no
@@ -107,11 +108,24 @@ flowchart LR
   button again stops it in place instead of restarting it, since that
   button doubles as the only stop affordance this section has — see
   `.vibe/decisions/012-in-game-preview-trigger-buttons-loop-and-stop-toggle.md`.
-  It reuses `viewer/animation-player.ts`'s already-exported pure timing
+  `special-move-list.ts` renders the Special Moves section (item 009) the
+  same way, but keyed by Statedef (State) rather than by raw animation
+  number: each state's own `anim` header field is resolved to the animation
+  it plays via `resolveStateAnimation` (unset defaults to the state's own
+  number, per MUGEN/Ikemen convention; an unevaluated trigger expression, in
+  `headerExprs.anim`, or a number matching no loaded animation both count as
+  "no clearly associated animation"). Such a state stays a normal, clickable
+  button carrying a muted inline hint rather than being disabled, and shows
+  a distinct, non-error status once clicked, skipping the decode pipeline
+  entirely — see
+  `.vibe/decisions/013-special-moves-own-section-not-merged-into-in-game-preview.md`
+  for why this is its own section with its own preview stage rather than a
+  second list feeding `animation-triggers.ts`'s own state machine. Both
+  files reuse `viewer/animation-player.ts`'s already-exported pure timing
   helpers (`effectiveTickDuration`, `isBlankFrame`, `computeNextFrameIndex`)
   and `viewer/sprite-browser.ts`'s decode/draw helpers
   (`computeScaleToFit`, `defaultDrawPixels`) rather than re-implementing
-  them, and returns the same small `{ pause() }` handle shape as the
+  them, and each returns the same small `{ pause() }` handle shape as the
   Animation section for `shell`'s own auto-pause-on-navigate-away.
 - **`wasm`** (`src/wasm/`) — the bridge to the `character` WebAssembly
   module. `bridge.ts` loads `wasm_exec.js` and instantiates `character.wasm`
@@ -157,8 +171,9 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
    workspace shell, passing the loaded `CharacterData` — and the raw
    `.sff` bytes just read, threaded through unchanged (see
    `.vibe/decisions/006-sff-bytes-threaded-through-load-result-for-on-demand-pixel-decode.md`)
-   — to every `viewer` section's own render function plus `game-mode`'s
-   In-game preview, all mounted at once inside their `<wuik-tab-panel>`.
+   — to every `viewer` section's own render function plus both of
+   `game-mode`'s sections (In-game preview, Special Moves), all mounted at
+   once inside their `<wuik-tab-panel>`.
    Only Characteristics starts visible; the rest wait behind the sidebar.
    Reloading the page starts over from step 1 — session state (loaded
    character, active section) is not persisted across a reload.
@@ -172,8 +187,10 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
    frame as it plays, steps, or loops — each frame change triggers its own
    `resolveSpritePixels` round trip (also discarding a superseded response),
    rather than pre-decoding a whole animation's frames up front. The
-   in-game preview's own trigger list decodes the same way, one frame at a
-   time, for whichever animation was last clicked.
+   in-game preview's own trigger list, and the Special Moves list, decode
+   the same way, one frame at a time, for whichever animation was last
+   clicked — the Special Moves list skips this step entirely for a state
+   with no resolvable animation.
 
 ## Data flow: applying a palette override
 

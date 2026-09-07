@@ -71,7 +71,25 @@ function character(): CharacterData {
         ],
       },
     ],
-    stateDefs: [],
+    stateDefs: [
+      {
+        number: 0,
+        type: "S",
+        moveType: "I",
+        physics: "S",
+        anim: 0,
+        ctrl: true,
+        powerAdd: 0,
+        juggle: 0,
+        faceP2: false,
+        hitDefPersist: false,
+        moveHitPersist: false,
+        hitCountPersist: false,
+        sprPriority: 0,
+        headerExprs: {},
+        controllers: [],
+      },
+    ],
     palettes: [],
   };
 }
@@ -129,7 +147,7 @@ describe("renderWorkspaceShell", () => {
     expect(root.querySelector('[slot="sidebar"]')).toBeNull();
   });
 
-  it("builds a vertical wuik-tabs sidebar with exactly the 5 in-scope sections, in order", () => {
+  it("builds a vertical wuik-tabs sidebar with exactly the 6 in-scope sections, in order", () => {
     const root = document.createElement("div");
     renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
 
@@ -142,6 +160,7 @@ describe("renderWorkspaceShell", () => {
       "Sprites",
       "Animation",
       "In-game preview",
+      "Special Moves",
     ]);
   });
 
@@ -154,6 +173,7 @@ describe("renderWorkspaceShell", () => {
     expect(root.querySelector(".sprite-browser")).not.toBeNull();
     expect(root.querySelector(".animation-player")).not.toBeNull();
     expect(root.querySelector(".animation-triggers")).not.toBeNull();
+    expect(root.querySelector(".special-move-list")).not.toBeNull();
 
     const panels = Array.from(
       root.querySelectorAll<HTMLElement>("wuik-tab-panel"),
@@ -260,6 +280,38 @@ describe("renderWorkspaceShell", () => {
       );
       triggerButton?.click();
       expect(triggerButton?.getAttribute("aria-pressed")).toBe("true");
+
+      (await tabButton(root, 0)).click(); // Characteristics — navigate away while playing
+      await vi.waitFor(() =>
+        expect(triggerButton?.getAttribute("aria-pressed")).toBe("false"),
+      );
+
+      // Advancing time after leaving must not silently resume playback.
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(triggerButton?.getAttribute("aria-pressed")).toBe("false");
+    } finally {
+      root.remove();
+    }
+  });
+
+  it("pauses Special Moves playback when the user navigates to a different section, without resuming it automatically on return", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    try {
+      renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
+
+      (await tabButton(root, 5)).click(); // Special Moves
+      await vi.waitFor(() =>
+        expect(root.querySelector(".special-move-list")).not.toBeNull(),
+      );
+
+      const triggerButton = root.querySelector<HTMLButtonElement>(
+        ".special-move-list__trigger",
+      );
+      triggerButton?.click();
+      await vi.waitFor(() =>
+        expect(triggerButton?.getAttribute("aria-pressed")).toBe("true"),
+      );
 
       (await tabButton(root, 0)).click(); // Characteristics — navigate away while playing
       await vi.waitFor(() =>

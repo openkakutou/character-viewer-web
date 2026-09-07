@@ -113,7 +113,7 @@ describe("renderApp — end-to-end character load", () => {
     const stateItems = Array.from(
       root.querySelectorAll(".characteristics-panel__states-list li"),
     ).map((el) => el.textContent);
-    expect(stateItems).toEqual(["-1", "0", "200"]);
+    expect(stateItems).toEqual(["-1", "0", "200", "300"]);
 
     // v1-basic.sff carries exactly one sprite group with one sprite —
     // mounted (though hidden behind Characteristics) as soon as the

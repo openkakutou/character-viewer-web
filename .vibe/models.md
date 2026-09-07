@@ -73,9 +73,10 @@ One `.cns` `[Statedef N]` block plus its controllers.
 | type | StateType | `"S" \| "C" \| "A" \| "L" \| "U"` |
 | moveType | MoveType | `"A" \| "I" \| "H" \| "U"` |
 | physics | PhysicsType | `"S" \| "C" \| "A" \| "N" \| "U"` |
-| anim | number | |
+| anim | number | 0 means "not set" (defaults to `number`); see `headerExprs` |
 | ctrl, faceP2, hitDefPersist, moveHitPersist, hitCountPersist | boolean | |
 | powerAdd, juggle, sprPriority | number | |
+| headerExprs | Record<string, string> | raw source text of a header field (e.g. `anim`) that held an unevaluated trigger expression instead of a literal value, keyed by lowercase field name; always an object, empty when none did |
 | controllers | Controller[] | |
 Defined in: `src/wasm/types.ts`
 

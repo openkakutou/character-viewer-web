@@ -50,3 +50,15 @@ movetype = A
 physics = S
 anim = 200
 ctrl = 0
+
+[Statedef 300, ConditionalAnim]
+; "anim" here is a trigger expression rather than a literal integer — a
+; real-world authoring pattern this app cannot evaluate (see
+; .vibe/decisions/013-special-moves-own-section-not-merged-into-in-game-preview.md).
+; It is used by the Special Moves list (item 009) to exercise the
+; "no clearly associated animation" path against real WASM output.
+type = S
+movetype = A
+physics = S
+anim = ifelse(life < 500, 200, 201)
+ctrl = 0

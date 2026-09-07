@@ -65,7 +65,7 @@ describe("loadCharacter", () => {
     expect(result.character.name).toBe("Bridge Test Character");
     expect(result.character.animations).toHaveLength(2);
     expect(result.character.sprites).toHaveLength(1);
-    expect(result.character.stateDefs).toHaveLength(3);
+    expect(result.character.stateDefs).toHaveLength(4);
   });
 
   it("maps every JSON field of a non-trivial animation to its typed shape", async () => {
@@ -187,6 +187,32 @@ describe("loadCharacter", () => {
       },
       { type: "VelSet", triggers: [], parameters: { x: "0", y: "0" } },
     ]);
+    // A literal "anim" value never populates headerExprs — see the next
+    // test for the expression case this escape hatch exists for.
+    expect(standing.headerExprs).toEqual({});
+  });
+
+  it("surfaces a Statedef's unevaluated header expression (e.g. a trigger-based \"anim\") via headerExprs, needed by item 009's Special Moves list", async () => {
+    const result = await loadCharacter(
+      defBytes,
+      airBytes,
+      sffBytes,
+      cnsBytes,
+      testOptions,
+    );
+    if (!result.ok) throw new Error("expected ok result");
+
+    const conditionalAnim = result.character.stateDefs.find(
+      (stateDef) => stateDef.number === 300,
+    );
+    expect(conditionalAnim).toBeDefined();
+    // The typed "anim" field is left at its zero value since the source
+    // held a trigger expression, not a literal integer — the raw text
+    // survives in headerExprs instead.
+    expect(conditionalAnim?.anim).toBe(0);
+    expect(conditionalAnim?.headerExprs).toEqual({
+      anim: "ifelse(life < 500, 200, 201)",
+    });
   });
 
   it("returns a typed error instead of throwing when the sprite bytes are malformed", async () => {

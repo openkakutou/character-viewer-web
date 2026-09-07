@@ -11,6 +11,7 @@
 // attribute (not `<wuik-tabs>`'s own click/keydown handling) drives
 // auto-pause and focus-on-switch.
 import { renderAnimationTriggers } from "../game-mode/animation-triggers.ts";
+import { renderSpecialMoveList } from "../game-mode/special-move-list.ts";
 import type { CharacterFileInputOptions } from "../input/character-file-input.ts";
 import { renderAnimationPlayer } from "../viewer/animation-player.ts";
 import { renderCharacteristicsPanel } from "../viewer/characteristics-panel.ts";
@@ -103,6 +104,7 @@ export function renderWorkspaceShell(
   const sprites = createSection(tabs, "Sprites");
   const animation = createSection(tabs, "Animation");
   const inGamePreview = createSection(tabs, "In-game preview");
+  const specialMoves = createSection(tabs, "Special Moves");
 
   shell.appendChild(tabs);
   root.appendChild(shell);
@@ -122,6 +124,12 @@ export function renderWorkspaceShell(
   );
   const animationTriggers = renderAnimationTriggers(
     inGamePreview.container,
+    character,
+    sffBytes,
+    { bridgeOptions: options.bridgeOptions },
+  );
+  const specialMoveList = renderSpecialMoveList(
+    specialMoves.container,
     character,
     sffBytes,
     { bridgeOptions: options.bridgeOptions },
@@ -147,6 +155,9 @@ export function renderWorkspaceShell(
         if (panel === inGamePreview.panel) {
           animationTriggers.pause();
         }
+        if (panel === specialMoves.panel) {
+          specialMoveList.pause();
+        }
       } else {
         focusSectionHeading(panel);
       }
@@ -158,6 +169,7 @@ export function renderWorkspaceShell(
     sprites,
     animation,
     inGamePreview,
+    specialMoves,
   ]) {
     observer.observe(section.panel, {
       attributes: true,

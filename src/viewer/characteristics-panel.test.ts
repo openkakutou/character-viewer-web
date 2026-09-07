@@ -41,6 +41,7 @@ function stateDef(number: number): StateDef {
     moveHitPersist: false,
     hitCountPersist: false,
     sprPriority: 0,
+    headerExprs: {},
     controllers: [],
   };
 }

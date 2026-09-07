@@ -89,6 +89,18 @@ export interface StateDef {
   moveHitPersist: boolean;
   hitCountPersist: boolean;
   sprPriority: number;
+  /**
+   * Raw source text of a numeric or boolean header field (currently only
+   * "anim" matters to this app) that held an unevaluated MUGEN/Ikemen
+   * trigger expression instead of a literal value, keyed by lowercase
+   * field name — e.g. `{ anim: "IfElse(Life < 500, 200, 201)" }`. A field
+   * with no entry here parsed as a plain literal, so its own typed field
+   * (`anim`, `ctrl`, etc.) holds the real value. Always an object (never
+   * `null`), even when empty. See the game-mode Special Moves list (item
+   * 009), which cannot evaluate an expression here and treats it the same
+   * as "no clearly associated animation".
+   */
+  headerExprs: Record<string, string>;
   controllers: Controller[];
 }
 

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The workspace now has a "Special Moves" section listing every one of the loaded character's states as its own button. Clicking one force-plays that state's associated animation live in its own preview, looping continuously — the same trigger/replace/click-again-to-stop behavior as the existing "In-game preview" animations list, but keyed by combat state instead of by raw animation number. A state with no clearly associated animation (its animation reference is missing, points at nothing loaded, or is a formula this app doesn't evaluate) is shown with a plain "no animation" note in the list and, once clicked, a clear status message — never a silent failure or a broken image.
+
 ## [0.9.0] - 2026-09-06
 
 ### Added
