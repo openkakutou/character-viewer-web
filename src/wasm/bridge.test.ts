@@ -266,6 +266,49 @@ describe("loadCharacter", () => {
     expect(okResult.character.name).toBe("Bridge Test Character");
   });
 
+  it("threads full CharacterInfo metadata (author, referenced file names) through to the typed result", async () => {
+    const defWithMetadataBytes = textBytes(
+      "[Info]\nname = Metadata Test\nauthor = Jane Doe\n[Files]\nsprite = kfm.sff\nanim = kfm.air\nsound = kfm.snd\ncmd = kfm.cmd\ncns = kfm.cns\nst1 = kfm1.st\nst2 = kfm2.st\n",
+    );
+
+    const result = await loadCharacter(
+      defWithMetadataBytes,
+      airBytes,
+      sffBytes,
+      cnsBytes,
+      testOptions,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok result");
+    expect(result.character.author).toBe("Jane Doe");
+    expect(result.character.spriteFile).toBe("kfm.sff");
+    expect(result.character.animationFile).toBe("kfm.air");
+    expect(result.character.soundFile).toBe("kfm.snd");
+    expect(result.character.commandFile).toBe("kfm.cmd");
+    expect(result.character.constantsFile).toBe("kfm.cns");
+    expect(result.character.stateFiles).toEqual(["kfm1.st", "kfm2.st"]);
+  });
+
+  it("defaults metadata fields to empty string/array, never null or undefined, when the .def omits them", async () => {
+    const result = await loadCharacter(
+      defBytes,
+      airBytes,
+      sffBytes,
+      cnsBytes,
+      testOptions,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok result");
+    expect(result.character.spriteFile).toBe("");
+    expect(result.character.animationFile).toBe("");
+    expect(result.character.soundFile).toBe("");
+    expect(result.character.commandFile).toBe("");
+    expect(result.character.constantsFile).toBe("");
+    expect(result.character.stateFiles).toEqual([]);
+  });
+
   it("reuses the same WASM instantiation across repeated calls instead of re-fetching", async () => {
     let wasmExecFetchCount = 0;
     let wasmBytesFetchCount = 0;

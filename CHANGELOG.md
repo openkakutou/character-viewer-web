@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The Characteristics panel now shows the character's author (when the loaded `.def` file sets one) and a "Files" section listing the sprite, animation, sound, command, combat-logic (constants), and extra state files it references, each shown as its plain file name. Fields the source file leaves empty are simply left out, never shown as blank or "undefined".
+
 ## [0.10.0] - 2026-09-07
 
 ### Added

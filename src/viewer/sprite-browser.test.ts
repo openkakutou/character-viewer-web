@@ -48,6 +48,13 @@ function characterWithSprites(): CharacterData {
     ],
     stateDefs: [],
     palettes: [],
+    author: "",
+    spriteFile: "",
+    animationFile: "",
+    soundFile: "",
+    commandFile: "",
+    constantsFile: "",
+    stateFiles: [],
   };
 }
 
@@ -76,6 +83,13 @@ describe("renderSpriteBrowser", () => {
       sprites: [],
       stateDefs: [],
       palettes: [],
+      author: "",
+      spriteFile: "",
+      animationFile: "",
+      soundFile: "",
+      commandFile: "",
+      constantsFile: "",
+      stateFiles: [],
     };
     renderSpriteBrowser(root, character, sffBytes);
     expect(root.textContent).toContain("No sprites");

@@ -67,8 +67,12 @@ flowchart LR
   and `.vibe/decisions/008-sprite-browser-stays-inline-tab-navigation-still-deferred.md`
   for why tab/sidebar navigation was deliberately deferred until now).
   `characteristics-panel.ts` renders the Characteristics section: name,
-  animation count, total sprite count, and the sorted list of Statedef
-  numbers. `sprite-browser.ts` renders the Sprites section: a collapsed-by-default list of
+  animation count, total sprite count, the sorted list of Statedef
+  numbers, the author (when set), and a "Files" section listing the
+  referenced sprite/animation/sound/command/constants/state file names as
+  basenames — see `.vibe/decisions/014-characteristics-panel-full-metadata-scope.md`
+  for why full paths and `palettes` (already shown by the palette picker)
+  are excluded. `sprite-browser.ts` renders the Sprites section: a collapsed-by-default list of
   sprite groups (expanding one lazily mounts only its own sprites, so a
   sheet with hundreds of sprites never dumps hundreds of DOM rows at once)
   and a preview `<canvas>` that decodes and shows the selected sprite's

@@ -91,6 +91,13 @@ function character(): CharacterData {
       },
     ],
     palettes: [],
+    author: "",
+    spriteFile: "",
+    animationFile: "",
+    soundFile: "",
+    commandFile: "",
+    constantsFile: "",
+    stateFiles: [],
   };
 }
 

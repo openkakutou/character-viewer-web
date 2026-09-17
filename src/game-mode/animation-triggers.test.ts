@@ -26,6 +26,13 @@ function characterWithAnimations(animations: Animation[]): CharacterData {
     sprites: [],
     stateDefs: [],
     palettes: [],
+    author: "",
+    spriteFile: "",
+    animationFile: "",
+    soundFile: "",
+    commandFile: "",
+    constantsFile: "",
+    stateFiles: [],
   };
 }
 

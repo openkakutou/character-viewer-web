@@ -27,6 +27,13 @@ function fixtureCharacter(
     ],
     stateDefs: [],
     palettes: [],
+    author: "",
+    spriteFile: "",
+    animationFile: "",
+    soundFile: "",
+    commandFile: "",
+    constantsFile: "",
+    stateFiles: [],
     ...overrides,
   };
 }

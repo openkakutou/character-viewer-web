@@ -58,6 +58,13 @@ function characterWith(
     sprites: [],
     stateDefs,
     palettes: [],
+    author: "",
+    spriteFile: "",
+    animationFile: "",
+    soundFile: "",
+    commandFile: "",
+    constantsFile: "",
+    stateFiles: [],
   };
 }
 

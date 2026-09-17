@@ -224,6 +224,14 @@ wuik-app-shell {
   margin: 0;
   font-size: var(--wuik-font-size-xl);
   font-weight: var(--wuik-font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.characteristics-panel__author {
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .characteristics-panel__stats {
@@ -281,6 +289,31 @@ wuik-app-shell {
   background-color: var(--wuik-color-surface);
   border-radius: var(--wuik-space-1);
   text-align: center;
+}
+
+.characteristics-panel__files h3 {
+  margin: 0 0 var(--wuik-space-2);
+  font-size: var(--wuik-font-size-base);
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.characteristics-panel__files-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-1);
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.characteristics-panel__files-item {
+  overflow-wrap: anywhere;
+}
+
+.characteristics-panel__files-item dt,
+.characteristics-panel__files-item dd {
+  display: inline;
+  margin: 0;
 }
 
 /*

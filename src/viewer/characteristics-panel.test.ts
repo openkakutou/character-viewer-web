@@ -53,6 +53,13 @@ function characterWith(overrides: Partial<CharacterData>): CharacterData {
     sprites: [],
     stateDefs: [],
     palettes: [],
+    author: "",
+    spriteFile: "",
+    animationFile: "",
+    soundFile: "",
+    commandFile: "",
+    constantsFile: "",
+    stateFiles: [],
     ...overrides,
   };
 }
@@ -168,5 +175,90 @@ describe("renderCharacteristicsPanel", () => {
     renderCharacteristicsPanel(root, null);
 
     expect(root.children).toHaveLength(0);
+  });
+
+  it("displays the author when present", () => {
+    const root = document.createElement("div");
+    const character = characterWith({ author: "Jane Doe" });
+
+    renderCharacteristicsPanel(root, character);
+
+    const author = root.querySelector(".characteristics-panel__author");
+    expect(author?.textContent).toContain("Jane Doe");
+  });
+
+  it("does not render an author line when the author is empty", () => {
+    const root = document.createElement("div");
+    const character = characterWith({ author: "" });
+
+    renderCharacteristicsPanel(root, character);
+
+    expect(root.querySelector(".characteristics-panel__author")).toBeNull();
+    expect(root.textContent).not.toContain("undefined");
+  });
+
+  it("does not render an author line when the author is whitespace only", () => {
+    const root = document.createElement("div");
+    const character = characterWith({ author: "   " });
+
+    renderCharacteristicsPanel(root, character);
+
+    expect(root.querySelector(".characteristics-panel__author")).toBeNull();
+  });
+
+  it("displays referenced file metadata as labeled, basename-only entries", () => {
+    const root = document.createElement("div");
+    const character = characterWith({
+      spriteFile: "kfm.sff",
+      animationFile: "characters/kfm/kfmanim.air",
+      soundFile: "kfm.snd",
+      commandFile: "kfm.cmd",
+      constantsFile: "kfm.cns",
+      stateFiles: ["kfm1.st", "extra/dir/kfm2.st"],
+    });
+
+    renderCharacteristicsPanel(root, character);
+
+    const filesSection = root.querySelector(".characteristics-panel__files");
+    expect(filesSection).not.toBeNull();
+    expect(filesSection?.querySelector("h3")?.textContent).toBe("Files");
+    const entries = Array.from(
+      root.querySelectorAll(".characteristics-panel__files-item"),
+    ).map((el) => el.textContent);
+    expect(entries).toEqual([
+      "Sprite file: kfm.sff",
+      "Animation file: kfmanim.air",
+      "Sound file: kfm.snd",
+      "Command file: kfm.cmd",
+      "Constants file: kfm.cns",
+      "State file: kfm1.st",
+      "State file: kfm2.st",
+    ]);
+  });
+
+  it("omits the Files section entirely when no file metadata is present", () => {
+    const root = document.createElement("div");
+    const character = characterWith({});
+
+    renderCharacteristicsPanel(root, character);
+
+    expect(root.querySelector(".characteristics-panel__files")).toBeNull();
+    expect(root.textContent).not.toContain("Files");
+    expect(root.textContent).not.toContain("undefined");
+  });
+
+  it("shows only the file fields that are present, omitting the rest", () => {
+    const root = document.createElement("div");
+    const character = characterWith({
+      spriteFile: "kfm.sff",
+      soundFile: "kfm.snd",
+    });
+
+    renderCharacteristicsPanel(root, character);
+
+    const entries = Array.from(
+      root.querySelectorAll(".characteristics-panel__files-item"),
+    ).map((el) => el.textContent);
+    expect(entries).toEqual(["Sprite file: kfm.sff", "Sound file: kfm.snd"]);
   });
 });

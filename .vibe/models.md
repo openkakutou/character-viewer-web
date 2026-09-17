@@ -6,10 +6,13 @@ The full character graph returned by the WASM bridge (`loadCharacter`), mirrorin
 | Field | Type | Notes |
 |---|---|---|
 | name | string | |
+| author | string | from the `.def` `[Info]` section's "author" key; empty when unset |
 | animations | Animation[] | |
 | sprites | SpriteGroup[] | |
 | stateDefs | StateDef[] | |
 | palettes | string[] | `.act` file paths referenced by the `.def`'s `[Files]` section — metadata only, this app never has their bytes (see the palette picker, item 006) |
+| spriteFile, animationFile, soundFile, commandFile, constantsFile | string | referenced `.sff`/`.air`/`.snd`/`.cmd`/`.cns` file paths from the `.def`'s `[Files]` section — metadata only, exactly as written there; empty when unset |
+| stateFiles | string[] | additional state definition (`.st`) file paths beyond `constantsFile`, from the `.def`'s `[Files]` section, in file order |
 Defined in: `src/wasm/types.ts`
 
 ## Animation

@@ -25,6 +25,13 @@ export function renderCharacteristicsPanel(
   name.className = "characteristics-panel__name";
   name.textContent = character.name;
 
+  const trimmedAuthor = character.author.trim();
+  const author = trimmedAuthor === "" ? null : document.createElement("p");
+  if (author !== null) {
+    author.className = "characteristics-panel__author";
+    author.textContent = `Author: ${trimmedAuthor}`;
+  }
+
   const totalSpriteCount = character.sprites.reduce(
     (sum, group) => sum + group.sprites.length,
     0,
@@ -64,8 +71,82 @@ export function renderCharacteristicsPanel(
     statesSection.appendChild(list);
   }
 
-  panel.append(name, stats, statesSection);
+  const filesSection = buildFilesSection(character);
+
+  panel.append(name);
+  if (author !== null) panel.append(author);
+  panel.append(stats, statesSection);
+  if (filesSection !== null) panel.append(filesSection);
   root.appendChild(panel);
+}
+
+/**
+ * Builds the "Files" section listing the referenced `.def [Files]` metadata
+ * (sprite/animation/sound/command/constants/state files) as labeled,
+ * basename-only entries — never the full path (see
+ * .vibe/decisions/014-characteristics-panel-full-metadata-scope.md).
+ * `palettes` is deliberately not repeated here; it already has its own
+ * display in the palette picker. Returns `null` (render nothing) when no
+ * field has a value, rather than an empty section.
+ */
+function buildFilesSection(character: CharacterData): HTMLElement | null {
+  const entries: Array<{ label: string; value: string }> = [
+    { label: "Sprite file", value: character.spriteFile },
+    { label: "Animation file", value: character.animationFile },
+    { label: "Sound file", value: character.soundFile },
+    { label: "Command file", value: character.commandFile },
+    { label: "Constants file", value: character.constantsFile },
+    ...character.stateFiles.map((value) => ({ label: "State file", value })),
+  ]
+    .map((entry) => ({ label: entry.label, value: basename(entry.value) }))
+    .filter((entry) => entry.value !== "");
+
+  if (entries.length === 0) return null;
+
+  const section = document.createElement("section");
+  section.className = "characteristics-panel__files";
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Files";
+  section.appendChild(heading);
+
+  const list = document.createElement("dl");
+  list.className = "characteristics-panel__files-list";
+  for (const entry of entries) {
+    list.appendChild(buildFileEntry(entry.label, entry.value));
+  }
+  section.appendChild(list);
+
+  return section;
+}
+
+function buildFileEntry(label: string, value: string): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "characteristics-panel__files-item";
+
+  const dt = document.createElement("dt");
+  dt.textContent = `${label}: `;
+
+  const dd = document.createElement("dd");
+  dd.textContent = value;
+
+  wrapper.append(dt, dd);
+  return wrapper;
+}
+
+/**
+ * Returns the final path segment of `path` (splitting on either `/` or
+ * `\`), trimmed — never the full path, which could be long or
+ * directory-prefixed in a real character's `.def` file. Returns `""` for a
+ * blank/whitespace-only or empty path, so an empty metadata field degrades
+ * to "nothing to show" rather than an empty string surviving as a
+ * displayed, meaningless entry.
+ */
+function basename(path: string): string {
+  const trimmed = path.trim();
+  if (trimmed === "") return "";
+  const segments = trimmed.split(/[/\\]/).filter((segment) => segment !== "");
+  return segments.length === 0 ? "" : segments[segments.length - 1];
 }
 
 function buildStat(

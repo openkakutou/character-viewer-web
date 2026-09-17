@@ -107,11 +107,25 @@ export interface StateDef {
 /** The full character graph returned by `OpenKakutouCharacter.load`. */
 export interface CharacterData {
   name: string;
+  /** The character's author/creator, from the `.def` `[Info]` section's "author" key. Empty when the source `.def` doesn't set it. */
+  author: string;
   animations: Animation[];
   sprites: SpriteGroup[];
   stateDefs: StateDef[];
   /** File paths referenced by the `.def`'s `[Files]` section for player-color variants (e.g. "kfm1.act") — metadata only, this app never has their bytes since it only loads the 4 required files. See the palette picker (item 006). */
   palettes: string[];
+  /** Path to this character's sprite sheet (`.sff`) file, as referenced in the `.def` `[Files]` section ("sprite") — metadata only, exactly as written there. */
+  spriteFile: string;
+  /** Path to this character's animation (`.air`) file, as referenced in the `.def` `[Files]` section ("anim") — metadata only. */
+  animationFile: string;
+  /** Path to this character's sound (`.snd`) file, as referenced in the `.def` `[Files]` section ("sound") — metadata only. */
+  soundFile: string;
+  /** Path to this character's command input (`.cmd`) file, as referenced in the `.def` `[Files]` section ("cmd") — metadata only. */
+  commandFile: string;
+  /** Path to this character's main combat logic (`.cns`) file, as referenced in the `.def` `[Files]` section ("cns") — metadata only. */
+  constantsFile: string;
+  /** Additional state definition (`.st`) file paths beyond `constantsFile`, as referenced in the `.def` `[Files]` section ("st", "st1", "st2", ...), in file order — metadata only. */
+  stateFiles: string[];
 }
 
 /**
