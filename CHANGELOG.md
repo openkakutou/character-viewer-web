@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-17
+
 ### Added
 
 - The Characteristics panel now shows the character's author (when the loaded `.def` file sets one) and a "Files" section listing the sprite, animation, sound, command, combat-logic (constants), and extra state files it references, each shown as its plain file name. Fields the source file leaves empty are simply left out, never shown as blank or "undefined".
@@ -76,7 +78,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.7.0...v0.8.0
