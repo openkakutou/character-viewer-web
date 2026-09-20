@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-20
+
 ### Added
 
 - Loading a character is now done by picking or dropping a whole character folder, instead of selecting the 4 files one by one. If the folder has exactly one `.def` file, it's used automatically; if it has more than one, you're asked which one is the character. The app then finds the referenced sprite/animation/constants files by the exact name the `.def` gives for them — a folder with extra or leftover files of the same type no longer causes the wrong one to load. A referenced file that can't be found anywhere in the folder shows a clear error naming it, with a "Choose a different folder" option to retry.
@@ -88,7 +90,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.9.0...v0.10.0
