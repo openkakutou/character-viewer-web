@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-20
+
 ### Added
 
 - The Animation Player now has "Export GIF" and "Export Stand" buttons. "Export GIF" downloads the currently selected animation as an animated GIF, using the current palette and correct per-frame timing. "Export Stand" downloads the character's standing animation in one click, without needing to find and select it first. A frame with no sprite exports as a blank, transparent frame instead of breaking the export, and trying to export a Stand animation the character doesn't have shows a clear message instead of downloading a broken file.
@@ -82,7 +84,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.8.0...v0.9.0
