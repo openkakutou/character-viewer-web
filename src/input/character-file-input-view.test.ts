@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetWasmBridgeForTests } from "../wasm/bridge.ts";
 import type { WasmBridgeOptions } from "../wasm/bridge.ts";
+import type { CharacterData } from "../wasm/types.ts";
 import { renderCharacterFileInput } from "./character-file-input-view.ts";
-import { readFileAsBytes } from "./character-file-input.ts";
-import type { CharacterFileInputOptions } from "./character-file-input.ts";
+import type { EntryLike, FileEntryLike } from "./folder-entries.ts";
 
 const publicWasmDir = path.resolve(
   import.meta.dirname,
@@ -26,270 +26,325 @@ function fixtureBytes(name: string): Uint8Array {
   return new Uint8Array(readFileSync(path.join(testdataDir, name)));
 }
 
-function textBytes(text: string): Uint8Array {
-  return new Uint8Array(new TextEncoder().encode(text));
+function defText(name = "File Input Test Character", basename = "ryu"): string {
+  return `[Info]\nname = ${name}\n\n[Files]\nsprite = ${basename}.sff\nanim = ${basename}.air\ncns = ${basename}.cns\n`;
 }
 
-function fileFromBytes(name: string, bytes: Uint8Array): File {
-  return new File([bytes as BufferSource], name);
+function makeFile(name: string, contents: BlobPart | Uint8Array = "x"): File {
+  return new File([contents as BufferSource], name);
 }
 
-function validFileSet(): { def: File; air: File; sff: File; cns: File } {
+function withRelativePath(file: File, relativePath: string): File {
+  Object.defineProperty(file, "webkitRelativePath", { value: relativePath });
+  return file;
+}
+
+function fakeFileEntry(fullPath: string, file: File): FileEntryLike {
   return {
-    def: fileFromBytes(
-      "ryu.def",
-      textBytes("[Info]\nname = View Test Character\n"),
-    ),
-    air: fileFromBytes("ryu.air", fixtureBytes("sample.air")),
-    sff: fileFromBytes("ryu.sff", fixtureBytes("v1-basic.sff")),
-    cns: fileFromBytes("ryu.cns", fixtureBytes("sample.cns")),
+    isFile: true,
+    isDirectory: false,
+    fullPath,
+    file: (success) => success(file),
   };
 }
 
-function pickFiles(picker: HTMLInputElement, files: File[]): void {
-  Object.defineProperty(picker, "files", {
-    value: files,
-    configurable: true,
-  });
-  picker.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-function dropFiles(dropZone: HTMLElement, files: File[]): void {
+/** jsdom's DragEvent does not implement DataTransfer, so it is stubbed directly. */
+function dispatchDrop(target: Element, entries: (EntryLike | null)[]): void {
   const event = new Event("drop", { bubbles: true, cancelable: true });
-  Object.defineProperty(event, "dataTransfer", { value: { files } });
-  dropZone.dispatchEvent(event);
+  Object.defineProperty(event, "dataTransfer", {
+    value: {
+      items: entries.map((entry) => ({ webkitGetAsEntry: () => entry })),
+    },
+  });
+  target.dispatchEvent(event);
 }
 
-beforeEach(() => {
-  resetWasmBridgeForTests();
-});
+function picker(root: HTMLElement): HTMLInputElement {
+  return root.querySelector('input[type="file"]') as HTMLInputElement;
+}
+
+function status(root: HTMLElement): HTMLElement {
+  return root.querySelector('[role="status"]') as HTMLElement;
+}
+
+function dropZone(root: HTMLElement): HTMLElement {
+  return root.querySelector(".file-input__dropzone") as HTMLElement;
+}
+
+async function selectViaPicker(
+  root: HTMLElement,
+  files: File[],
+): Promise<void> {
+  const input = picker(root);
+  Object.defineProperty(input, "files", { value: files, configurable: true });
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  await vi.waitFor(() => {
+    if (status(root).textContent?.toLowerCase().includes("reading")) {
+      throw new Error("still loading");
+    }
+  });
+}
+
+function requiredFolderFiles(name?: string): File[] {
+  return [
+    withRelativePath(makeFile("ryu.def", defText(name)), "ryu/ryu.def"),
+    withRelativePath(
+      makeFile("ryu.air", fixtureBytes("sample.air")),
+      "ryu/ryu.air",
+    ),
+    withRelativePath(
+      makeFile("ryu.sff", fixtureBytes("v1-basic.sff")),
+      "ryu/ryu.sff",
+    ),
+    withRelativePath(
+      makeFile("ryu.cns", fixtureBytes("sample.cns")),
+      "ryu/ryu.cns",
+    ),
+  ];
+}
 
 describe("renderCharacterFileInput", () => {
-  it("loads the character and reports success once all 4 files are picked via the file input", async () => {
-    const root = document.createElement("div");
-    const onLoaded = vi.fn();
-    renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
+  beforeEach(() => {
+    resetWasmBridgeForTests();
+  });
 
-    const picker = root.querySelector<HTMLInputElement>(
-      "#character-file-picker",
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("shows a folder-specific prompt in the idle state, not the old per-file prompt", () => {
+    const root = document.createElement("div");
+    renderCharacterFileInput(root, { onLoaded: vi.fn() });
+
+    expect(root.querySelector(".file-input__label")?.textContent).toContain(
+      "folder",
     );
-    if (!picker) throw new Error("picker not found");
-    const { def, air, sff, cns } = validFileSet();
-    pickFiles(picker, [def, air, sff, cns]);
-
-    await vi.waitFor(() => {
-      expect(onLoaded).toHaveBeenCalledTimes(1);
-    });
-
-    const loadedCharacter = onLoaded.mock.calls[0]?.[0];
-    expect(loadedCharacter.name).toBe("View Test Character");
-    const loadedSffBytes = onLoaded.mock.calls[0]?.[1];
-    expect(loadedSffBytes).toEqual(fixtureBytes("v1-basic.sff"));
-
-    const status = root.querySelector(".file-input__status");
-    expect(status?.textContent).toContain("Character loaded");
-    expect(status?.textContent).toContain("ryu.def");
-    expect(status?.textContent).toContain("ryu.sff");
+    expect(root.querySelectorAll(".file-input__slot")).toHaveLength(0);
   });
 
-  it("accumulates files dropped across two separate gestures before loading", async () => {
+  it("exposes a keyboard-operable, labeled native folder input", () => {
+    const root = document.createElement("div");
+    renderCharacterFileInput(root, { onLoaded: vi.fn() });
+
+    const input = picker(root);
+    const label = root.querySelector<HTMLLabelElement>(".file-input__label");
+
+    expect(input.type).toBe("file");
+    expect(input.hasAttribute("webkitdirectory")).toBe(true);
+    expect(label?.htmlFor).toBe(input.id);
+    expect(status(root).getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("auto-loads and calls onLoaded once a folder picked via the folder input resolves completely", async () => {
     const root = document.createElement("div");
     const onLoaded = vi.fn();
     renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
-    const dropZone = root.querySelector<HTMLElement>(".file-input__dropzone");
-    if (!dropZone) throw new Error("dropzone not found");
-    const { def, air, sff, cns } = validFileSet();
 
-    dropFiles(dropZone, [def, air]);
-    expect(onLoaded).not.toHaveBeenCalled();
+    await selectViaPicker(root, requiredFolderFiles("Picker Test Character"));
 
-    dropFiles(dropZone, [sff, cns]);
-
-    await vi.waitFor(() => {
-      expect(onLoaded).toHaveBeenCalledTimes(1);
-    });
+    expect(onLoaded).toHaveBeenCalledTimes(1);
+    const [character, sffBytes] = onLoaded.mock.calls[0] as [
+      CharacterData,
+      Uint8Array,
+    ];
+    expect(character.name).toBe("Picker Test Character");
+    expect(sffBytes).toEqual(fixtureBytes("v1-basic.sff"));
+    expect(status(root).textContent).toContain("Picker Test Character");
   });
 
-  it("shows which file is still missing and does not call onLoaded when only 3 of 4 are given", () => {
+  it("gathers a dropped folder's contents and loads the character the same way as the picker", async () => {
     const root = document.createElement("div");
     const onLoaded = vi.fn();
     renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
-    const picker = root.querySelector<HTMLInputElement>(
-      "#character-file-picker",
+
+    dispatchDrop(dropZone(root), [
+      fakeFileEntry(
+        "/ryu/ryu.def",
+        makeFile("ryu.def", defText("Dropped Character")),
+      ),
+      fakeFileEntry(
+        "/ryu/ryu.air",
+        makeFile("ryu.air", fixtureBytes("sample.air")),
+      ),
+      fakeFileEntry(
+        "/ryu/ryu.sff",
+        makeFile("ryu.sff", fixtureBytes("v1-basic.sff")),
+      ),
+      fakeFileEntry(
+        "/ryu/ryu.cns",
+        makeFile("ryu.cns", fixtureBytes("sample.cns")),
+      ),
+    ]);
+
+    await vi.waitFor(() => expect(onLoaded).toHaveBeenCalledTimes(1));
+  });
+
+  it("shows a picker naming both candidates when the folder has two .def files, and loads the one confirmed", async () => {
+    const root = document.createElement("div");
+    const onLoaded = vi.fn();
+    renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
+
+    const defA = withRelativePath(
+      makeFile("ryu.def", defText("Ryu", "ryu")),
+      "ryu/ryu.def",
     );
-    if (!picker) throw new Error("picker not found");
-    const { def, air, sff } = validFileSet();
-
-    pickFiles(picker, [def, air, sff]);
-
-    expect(onLoaded).not.toHaveBeenCalled();
-    const cnsSlot = root.querySelector('[data-kind="cns"]');
-    expect(cnsSlot?.textContent).toContain("Missing");
-    const status = root.querySelector(".file-input__status");
-    expect(status?.textContent).toBe("");
-  });
-
-  it("reports two files of the same kind dropped together as a conflict naming both, without auto-loading", () => {
-    const root = document.createElement("div");
-    const onLoaded = vi.fn();
-    renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
-    const dropZone = root.querySelector<HTMLElement>(".file-input__dropzone");
-    if (!dropZone) throw new Error("dropzone not found");
-    const { air, sff, cns } = validFileSet();
-    const defA = fileFromBytes("ryu-a.def", textBytes("a"));
-    const defB = fileFromBytes("ryu-b.def", textBytes("b"));
-
-    dropFiles(dropZone, [defA, defB, air, sff, cns]);
-
-    expect(onLoaded).not.toHaveBeenCalled();
-    const defSlot = root.querySelector('[data-kind="def"]');
-    expect(defSlot?.textContent).toContain("ryu-a.def");
-    expect(defSlot?.textContent).toContain("ryu-b.def");
-    expect(defSlot?.textContent).toContain("Missing");
-  });
-
-  it("reports files with an unrecognized extension as ignored without blocking the other slots", () => {
-    const root = document.createElement("div");
-    const onLoaded = vi.fn();
-    renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
-    const dropZone = root.querySelector<HTMLElement>(".file-input__dropzone");
-    if (!dropZone) throw new Error("dropzone not found");
-    const readme = fileFromBytes("readme.txt", textBytes("notes"));
-    const { def } = validFileSet();
-
-    dropFiles(dropZone, [readme, def]);
-
-    const ignoredNotice = root.querySelector<HTMLElement>(
-      ".file-input__ignored",
+    const defB = withRelativePath(
+      makeFile("ken.def", defText("Ken", "ken")),
+      "ken/ken.def",
     );
-    expect(ignoredNotice?.hidden).toBe(false);
-    expect(ignoredNotice?.textContent).toContain("readme.txt");
-    const defSlot = root.querySelector('[data-kind="def"]');
-    expect(defSlot?.textContent).toContain("ryu.def");
+    await selectViaPicker(root, [
+      defA,
+      defB,
+      ...requiredFolderFiles().slice(1),
+      withRelativePath(
+        makeFile("ken.air", fixtureBytes("sample.air")),
+        "ken/ken.air",
+      ),
+      withRelativePath(
+        makeFile("ken.sff", fixtureBytes("v1-basic.sff")),
+        "ken/ken.sff",
+      ),
+      withRelativePath(
+        makeFile("ken.cns", fixtureBytes("sample.cns")),
+        "ken/ken.cns",
+      ),
+    ]);
+
+    const options = Array.from(
+      root.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
+    );
+    expect(options).toHaveLength(2);
+    expect(root.querySelector("fieldset")).not.toBeNull();
+    expect(root.querySelector("legend")).not.toBeNull();
+    expect(root.textContent).toContain("ryu/ryu.def");
+    expect(root.textContent).toContain("ken/ken.def");
+
+    const confirmButton = root.querySelector<HTMLButtonElement>(
+      '[data-action="confirm-selection"]',
+    );
+    expect(confirmButton?.disabled).toBe(true);
+
+    options[0].checked = true;
+    options[0].dispatchEvent(new Event("click", { bubbles: true }));
+    expect(confirmButton?.disabled).toBe(false);
+
+    confirmButton?.dispatchEvent(new Event("click", { bubbles: true }));
+
+    await vi.waitFor(() => expect(onLoaded).toHaveBeenCalledTimes(1));
+    const [character] = onLoaded.mock.calls[0] as [CharacterData, unknown];
+    expect(character.name).toBe("Ryu");
   });
 
-  it("shows a read-error on the offending slot and keeps the other 3 files when one file cannot be read", async () => {
+  it("shows a clear error naming the missing referenced file, without calling onLoaded, when a required file can't be found", async () => {
     const root = document.createElement("div");
     const onLoaded = vi.fn();
-    const failingOptions: CharacterFileInputOptions = {
-      ...testOptions,
-      readFileBytes: async (file) => {
-        if (file.name === "ryu.sff") {
-          throw new Error("simulated unreadable file");
-        }
-        return readFileAsBytes(file);
-      },
-    };
+    renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
+
+    const files = requiredFolderFiles().filter((f) => !f.name.endsWith(".sff"));
+    await selectViaPicker(root, files);
+
+    expect(onLoaded).not.toHaveBeenCalled();
+    expect(status(root).textContent).toContain("ryu.sff");
+    expect(status(root).classList.contains("file-input__status--error")).toBe(
+      true,
+    );
+  });
+
+  it("reports no .def file found, without calling onLoaded, for a folder with none", async () => {
+    const root = document.createElement("div");
+    const onLoaded = vi.fn();
+    renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
+
+    await selectViaPicker(root, [
+      withRelativePath(makeFile("readme.txt"), "pack/readme.txt"),
+    ]);
+
+    expect(onLoaded).not.toHaveBeenCalled();
+    expect(status(root).textContent).toContain(".def");
+  });
+
+  it("shows a clear error instead of crashing when a resolved file's contents are malformed", async () => {
+    const root = document.createElement("div");
+    const onLoaded = vi.fn();
+    renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
+
+    const files = requiredFolderFiles().map((f) =>
+      f.name.endsWith(".sff")
+        ? withRelativePath(
+            makeFile("ryu.sff", "this is not a valid .sff file"),
+            "ryu/ryu.sff",
+          )
+        : f,
+    );
+
+    await expect(selectViaPicker(root, files)).resolves.not.toThrow();
+
+    expect(onLoaded).not.toHaveBeenCalled();
+    expect(status(root).textContent).toContain("sprite");
+  });
+
+  it("lets the user choose a different folder after an error, clearing the previous error and returning focus to the folder input", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
     renderCharacterFileInput(root, {
-      onLoaded,
-      bridgeOptions: failingOptions,
+      onLoaded: vi.fn(),
+      bridgeOptions: testOptions,
     });
-    const picker = root.querySelector<HTMLInputElement>(
-      "#character-file-picker",
+
+    await selectViaPicker(root, [
+      withRelativePath(makeFile("readme.txt"), "pack/readme.txt"),
+    ]);
+    expect(status(root).classList.contains("file-input__status--error")).toBe(
+      true,
     );
-    if (!picker) throw new Error("picker not found");
-    const { def, air, sff, cns } = validFileSet();
 
-    pickFiles(picker, [def, air, sff, cns]);
+    const resetButton = root.querySelector<HTMLButtonElement>(
+      '[data-action="reset"]',
+    );
+    resetButton?.dispatchEvent(new Event("click", { bubbles: true }));
 
-    await vi.waitFor(() => {
-      expect(root.querySelector('[data-kind="sff"]')?.textContent).toContain(
-        "Missing",
-      );
-    });
-
-    expect(onLoaded).not.toHaveBeenCalled();
-    const sffSlot = root.querySelector('[data-kind="sff"]');
-    expect(sffSlot?.textContent).toContain("simulated unreadable file");
-    const defSlot = root.querySelector('[data-kind="def"]');
-    expect(defSlot?.textContent).toContain("ryu.def");
+    expect(status(root).textContent).toBe("");
+    expect(status(root).classList.contains("file-input__status--error")).toBe(
+      false,
+    );
+    expect(document.activeElement).toBe(picker(root));
   });
 
-  it("shows a clear error instead of crashing when the file contents are malformed", async () => {
+  it("shows loading feedback while the folder is being read and the character loaded", async () => {
     const root = document.createElement("div");
     const onLoaded = vi.fn();
     renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
-    const picker = root.querySelector<HTMLInputElement>(
-      "#character-file-picker",
-    );
-    if (!picker) throw new Error("picker not found");
-    const { def, air, cns } = validFileSet();
-    const garbageSff = fileFromBytes(
-      "ryu.sff",
-      textBytes("this is not a valid .sff file"),
-    );
 
-    expect(() => pickFiles(picker, [def, air, garbageSff, cns])).not.toThrow();
-
-    const status = root.querySelector(".file-input__status");
-    await vi.waitFor(() => {
-      expect(status?.textContent).toContain("Could not load character");
+    const input = picker(root);
+    Object.defineProperty(input, "files", {
+      value: requiredFolderFiles(),
+      configurable: true,
     });
+    input.dispatchEvent(new Event("change", { bubbles: true }));
 
-    expect(onLoaded).not.toHaveBeenCalled();
-    expect(status?.textContent).toContain("sprite");
-  });
+    expect(status(root).textContent).toContain("Reading");
 
-  it("shows loading feedback while the character is being read and loaded", async () => {
-    const root = document.createElement("div");
-    const onLoaded = vi.fn();
-    renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
-    const picker = root.querySelector<HTMLInputElement>(
-      "#character-file-picker",
-    );
-    if (!picker) throw new Error("picker not found");
-    const { def, air, sff, cns } = validFileSet();
-
-    pickFiles(picker, [def, air, sff, cns]);
-
-    const status = root.querySelector(".file-input__status");
-    expect(status?.textContent).toBe("Loading character…");
-
-    await vi.waitFor(() => {
-      expect(status?.textContent).toContain("Character loaded");
-    });
+    await vi.waitFor(() => expect(onLoaded).toHaveBeenCalledTimes(1));
   });
 
   it("toggles a dragging state on drag-over feedback and clears it on drag-leave", () => {
     const root = document.createElement("div");
     renderCharacterFileInput(root, { onLoaded: vi.fn() });
-    const dropZone = root.querySelector<HTMLElement>(".file-input__dropzone");
-    if (!dropZone) throw new Error("dropzone not found");
+    const zone = dropZone(root);
 
-    dropZone.dispatchEvent(
+    zone.dispatchEvent(
       new Event("dragenter", { bubbles: true, cancelable: true }),
     );
-    expect(dropZone.classList.contains("file-input__dropzone--dragging")).toBe(
+    expect(zone.classList.contains("file-input__dropzone--dragging")).toBe(
       true,
     );
 
-    dropZone.dispatchEvent(
+    zone.dispatchEvent(
       new Event("dragleave", { bubbles: true, cancelable: true }),
     );
-    expect(dropZone.classList.contains("file-input__dropzone--dragging")).toBe(
+    expect(zone.classList.contains("file-input__dropzone--dragging")).toBe(
       false,
     );
-  });
-
-  it("exposes a keyboard-operable, labeled native file input naming the accepted file types", () => {
-    const root = document.createElement("div");
-    renderCharacterFileInput(root, { onLoaded: vi.fn() });
-
-    const picker = root.querySelector<HTMLInputElement>(
-      "#character-file-picker",
-    );
-    const label = root.querySelector<HTMLLabelElement>(".file-input__label");
-
-    expect(picker?.type).toBe("file");
-    expect(picker?.multiple).toBe(true);
-    expect(picker?.accept).toBe(".def,.air,.sff,.cns");
-    expect(label?.htmlFor).toBe("character-file-picker");
-    expect(
-      root.querySelector(".file-input__status")?.getAttribute("aria-live"),
-    ).toBe("polite");
-    expect(
-      root.querySelector(".file-input__slots")?.getAttribute("aria-live"),
-    ).toBe("polite");
   });
 
   it("replaces previous content instead of appending on repeated renders", () => {
@@ -298,6 +353,6 @@ describe("renderCharacterFileInput", () => {
     renderCharacterFileInput(root, { onLoaded: vi.fn() });
     renderCharacterFileInput(root, { onLoaded: vi.fn() });
 
-    expect(root.querySelectorAll("#character-file-picker")).toHaveLength(1);
+    expect(root.querySelectorAll('input[type="file"]')).toHaveLength(1);
   });
 });

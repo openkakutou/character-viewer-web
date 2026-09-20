@@ -113,9 +113,11 @@ wuik-app-shell {
 }
 
 /*
- * Character file input (backlog item 003). Every value is a `web-ui-kit`
- * design token — see .vibe/decisions/004-character-file-input-interaction-model.md
- * for the interaction model these states support.
+ * Character file input (backlog item 015) — folder selection only, a
+ * native `<input webkitdirectory>` picker plus a drag-and-drop zone
+ * accepting a dropped folder, replacing item 003's 4-slot per-kind picker
+ * outright. Every value is a `web-ui-kit` design token — see
+ * .vibe/decisions/017-folder-only-input-def-files-parse-and-ported-resolution.md.
  */
 
 .file-input {
@@ -154,56 +156,64 @@ wuik-app-shell {
   color: var(--wuik-color-text-secondary);
 }
 
-.file-input__slots {
+/* The multi-`.def`-candidate picker: a native `<fieldset>`/`<legend>` radio
+ * group, shown only while the folder input's own phase is
+ * "needs-selection" (view-controlled via `hidden`, not a CSS state
+ * selector, since the view already tracks phase). */
+.file-input__selection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-2);
+  padding: var(--wuik-space-2);
+  border-left: 3px solid var(--wuik-color-border);
+}
+
+/* `display: flex` above has the same specificity as the UA stylesheet's
+ * `[hidden] { display: none }` and would otherwise win at equal
+ * specificity (author rules beat the UA sheet) — see `character-editor`'s
+ * own real-browser-verified fix for the identical pattern. This
+ * higher-specificity rule restores the `hidden` attribute's own effect. */
+.file-input__selection[hidden] {
+  display: none;
+}
+
+.file-input__selection fieldset {
   display: flex;
   flex-direction: column;
   gap: var(--wuik-space-1);
   margin: 0;
   padding: 0;
-  list-style: none;
-}
-
-.file-input__slot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--wuik-space-2);
-}
-
-.file-input__slot-kind {
-  min-width: 3.5em;
+  border: none;
   font-family: var(--wuik-font-family-mono);
+  font-size: var(--wuik-font-size-sm);
+}
+
+.file-input__selection legend {
+  padding: 0;
+  font-family: var(--wuik-font-family-base);
   font-weight: var(--wuik-font-weight-medium);
-}
-
-.file-input__slot-value {
-  color: var(--wuik-color-text-secondary);
-}
-
-.file-input__slot--filled .file-input__slot-value {
-  color: var(--wuik-color-text);
-}
-
-.file-input__slot--error .file-input__slot-value {
-  color: var(--wuik-color-danger);
-}
-
-.file-input__slot-error-text {
-  flex-basis: 100%;
-  font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-danger);
-}
-
-.file-input__ignored {
-  margin: 0;
-  font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-warning);
 }
 
 .file-input__status {
   min-height: 1.2em;
   font-size: var(--wuik-font-size-sm);
   color: var(--wuik-color-text-secondary);
+}
+
+.file-input__status--error {
+  padding-left: var(--wuik-space-2);
+  color: var(--wuik-color-text);
+  border-left: 3px solid var(--wuik-color-danger);
+}
+
+.file-input__reset {
+  align-self: flex-start;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 /*

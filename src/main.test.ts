@@ -65,7 +65,7 @@ describe("renderApp — end-to-end character load", () => {
     renderApp(root, "0.1.0", { bridgeOptions: testOptions });
 
     const picker = root.querySelector<HTMLInputElement>(
-      "#character-file-picker",
+      "#character-folder-picker",
     );
     if (!picker) throw new Error("picker not found");
 
@@ -74,14 +74,36 @@ describe("renderApp — end-to-end character load", () => {
       new Uint8Array(readFileSync(path.join(testdataDir, name)));
     const textBytes = (text: string) =>
       new Uint8Array(new TextEncoder().encode(text));
+    const withRelativePath = (file: File, relativePath: string): File => {
+      Object.defineProperty(file, "webkitRelativePath", {
+        value: relativePath,
+      });
+      return file;
+    };
 
-    const def = new File(
-      [textBytes("[Info]\nname = End To End Character\n") as BufferSource],
-      "ryu.def",
+    const def = withRelativePath(
+      new File(
+        [
+          textBytes(
+            "[Info]\nname = End To End Character\n\n[Files]\nsprite = ryu.sff\nanim = ryu.air\ncns = ryu.cns\n",
+          ) as BufferSource,
+        ],
+        "ryu.def",
+      ),
+      "ryu/ryu.def",
     );
-    const air = new File([fixture("sample.air") as BufferSource], "ryu.air");
-    const sff = new File([fixture("v1-basic.sff") as BufferSource], "ryu.sff");
-    const cns = new File([fixture("sample.cns") as BufferSource], "ryu.cns");
+    const air = withRelativePath(
+      new File([fixture("sample.air") as BufferSource], "ryu.air"),
+      "ryu/ryu.air",
+    );
+    const sff = withRelativePath(
+      new File([fixture("v1-basic.sff") as BufferSource], "ryu.sff"),
+      "ryu/ryu.sff",
+    );
+    const cns = withRelativePath(
+      new File([fixture("sample.cns") as BufferSource], "ryu.cns"),
+      "ryu/ryu.cns",
+    );
 
     Object.defineProperty(picker, "files", {
       value: [def, air, sff, cns],

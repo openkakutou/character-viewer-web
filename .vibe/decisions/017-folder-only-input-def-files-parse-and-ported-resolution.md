@@ -1,0 +1,19 @@
+---
+date: 2026-09-20
+status: accepted
+---
+# Folder-only character input: minimal local `.def` `[Files]` parse ahead of the WASM load call, resolution logic ported from sibling repos
+
+**Context:** Backlog item 015 makes folder selection this viewer's only way to load a character, replacing item 003's 4-slot per-kind file picker/drop zone outright. Referenced `.air`/`.sff`/`.cns` files must be located by the exact filename the chosen `.def` actually references, not guessed by extension. The `character` WASM module's `OpenKakutouCharacter.load` requires all four required files' bytes (`.def`/`.air`/`.sff`/`.cns`) simultaneously — there is no WASM call that parses just the `.def`'s referenced filenames ahead of having the other three already in hand, so this app cannot learn what to look for in the folder listing except by reading the `.def` itself first.
+
+**Decision:**
+- A small, narrowly-scoped local text parser (`def-files-section.ts`) reads only the `.def`'s `[Files]` section for the `sprite`/`anim`/`cns` keys — mirroring the `character` Go library's own `def.Parse` key-to-field mapping exactly (confirmed by reading its source, `def/parser.go`) — and nothing else about `.def`'s grammar (comments, `[Info]`, palette/state-file lists, `.cmd`/`.zss`, which this viewer never needs) is reimplemented. This runs once, ahead of the real WASM `load` call, purely to learn which filenames to look for in the already-gathered folder listing.
+- Folder gathering (`folder-entries.ts`) and referenced-file resolution (basename match, exact case first, case-insensitive fallback second, more than one match reported as ambiguous rather than guessed) are ported near-verbatim from the same pattern already shipped and real-browser-verified in `stage-editor`/`stage-viewer-web`/`lifebar-editor`/`lifebar-viewer-web`/`character-editor` — not re-derived, since folder-listing/basename-resolution has no domain specifics of its own. The `character-editor` sibling already solved this exact problem (same `character` WASM boundary, same "no cmd/zss for this app" trim already applies here even more since this viewer never needs `.cmd`/`.zss` bytes at all) — its `.vibe/decisions/016` is the direct precedent this decision mirrors.
+- The existing `CharacterInputResult` success shape (`{ character, sffBytes }`, sffBytes threaded through untouched for on-demand sprite pixel decode — `.vibe/decisions/006`) and `renderCharacterFileInput`'s `onLoaded(character, sffBytes)` signature are preserved exactly, so `launch-screen.ts`/`main.ts`/`palette-picker.ts` (which reuses `readFileAsBytes`) need no changes.
+
+**Reason:** The local `[Files]`-section parse is unavoidable given the WASM boundary's actual shape, and kept deliberately minimal — 3 keys, one section — rather than a second, competing `.def` parser. Reusing the sibling repos' already-reviewed gathering/resolution/picker code keeps this app's folder-input behavior consistent with the rest of the org instead of a differently-shaped implementation of the same browser-API workarounds (jsdom has no `FileSystemEntry`/`webkitGetAsEntry`, so that logic is modeled as minimal `*Like` interfaces and unit-tested against plain mocks).
+
+**Rejected alternatives:**
+- **Extend the WASM bridge with a new "parse `.def` only" call:** rejected as out of this item's scope — a cross-repo WASM surface change belongs to the `character` library's own backlog, not this item, and the local minimal parse is small enough not to justify it.
+- **Guess referenced files purely by extension (the old per-kind slot model):** rejected outright — this is exactly what the acceptance criteria rule out.
+- **Keep the old 4-slot picker as a fallback for browsers without folder-select support:** rejected — the backlog item's own Notes commit to folder selection as "the final, single input model for the whole project, not an interim option alongside others", and no sibling app kept a fallback either.

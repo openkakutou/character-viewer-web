@@ -55,13 +55,30 @@ flowchart LR
   animation player and, separately, the in-game preview's own playback when
   their section stops being visible, and moving focus to the newly visible
   section's own heading.
-- **`input`** (`src/input/`) — the character file input. `character-file-input.ts`
-  holds the DOM-free logic: it accumulates the 4 required files
-  (`.def`/`.air`/`.sff`/`.cns`) across any number of picker/drop gestures,
-  validates them (missing kind, same-gesture duplicate kind, unreadable
-  file — see `.vibe/decisions/004-character-file-input-interaction-model.md`),
-  and calls into `wasm` once all 4 are present. `character-file-input-view.ts`
-  renders the file-picker + drag-and-drop UI on top of that logic.
+- **`input`** (`src/input/`) — the character file input: folder selection
+  only (item 015) — see
+  `.vibe/decisions/017-folder-only-input-def-files-parse-and-ported-resolution.md`.
+  `folder-entries.ts` gathers the full file listing from either browser entry
+  point (`<input webkitdirectory>`'s flat `FileList`, or a dropped folder
+  walked recursively via `DataTransferItem.webkitGetAsEntry()`/
+  `FileSystemDirectoryReader`) into one `GatheredFile[]`, ported near-verbatim
+  from the sibling `*-editor`/`*-viewer-web` apps since folder-listing has no
+  domain specifics of its own. `def-files-section.ts` does a deliberately
+  minimal local text read of just a `.def`'s own `[Files]` section
+  (`sprite`/`anim`/`cns` keys only) — the `character` WASM module's `load`
+  call needs all 4 required files' bytes at once, so there is no WASM call
+  that can answer "what does this `.def` reference" on its own.
+  `character-file-input.ts` holds the rest of the DOM-free logic:
+  `resolveDefCandidates` picks the folder's `.def` entry point (auto if
+  exactly one, otherwise reports every candidate for the view to ask about),
+  `resolveReferencedFile` locates each referenced filename against the
+  gathered listing by basename (exact case first, case-insensitive fallback
+  second, more than one match reported as ambiguous rather than guessed),
+  and `loadCharacterFromChosenDef`/`loadCharacterFromFolderFiles` read the
+  resolved files' bytes and call into `wasm`. `character-file-input-view.ts`
+  renders the folder-picker + drag-and-drop UI plus the multi-`.def`
+  candidate picker (a native `<fieldset>`/`<legend>` radio group) on top of
+  that logic.
 - **`viewer`** (`src/viewer/`) — screens that display an already-loaded
   character's data, each hosted as one section of `shell`'s workspace
   (item 020; each screen's own render function is unchanged by that move —
@@ -179,19 +196,25 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
 
 ## Data flow: loading a character
 
-1. The user picks or drops files onto `shell`'s launch screen, which hosts
-   `input`'s view unchanged.
-2. `input`'s logic classifies each file by extension, accumulates it into a
-   per-kind slot, and — once all 4 required kinds are filled with no
-   unresolved conflict — reads each file's bytes (via `FileReader`, not
-   `Blob#arrayBuffer()`, since the latter is unimplemented in the project's
-   pinned jsdom version and this way test and browser behavior match).
+1. The user picks or drops a character folder onto `shell`'s launch screen,
+   which hosts `input`'s view unchanged.
+2. `input`'s logic gathers the folder's full file listing (`folder-entries.ts`),
+   picks the `.def` entry point (auto if exactly one, otherwise the view
+   shows a radio-group picker naming every candidate and waits for a
+   choice), reads it and parses just its `[Files]` section
+   (`def-files-section.ts`) to learn the referenced `.air`/`.sff`/`.cns`
+   filenames, resolves each against the gathered listing by basename, and
+   — once every required reference resolves — reads each resolved file's
+   bytes (via `FileReader`, not `Blob#arrayBuffer()`, since the latter is
+   unimplemented in the project's pinned jsdom version and this way test
+   and browser behavior match).
 3. The 4 byte buffers are handed to `wasm.loadCharacter`, which calls the
    WebAssembly module's `OpenKakutouCharacter.load` and parses its
    `{character, error}` JSON result into a typed `CharacterResult`.
 4. `input`'s view reports success (character loaded) or a typed failure
-   (a specific unreadable file, or the WASM module's own parse error) back
-   to the caller — never a thrown exception at any layer.
+   (no `.def` found, a referenced file not found or ambiguous, a specific
+   unreadable file, or the WASM module's own parse error) back to the
+   caller — never a thrown exception at any layer.
 5. On success, `shell` replaces the launch screen entirely with the
    workspace shell, passing the loaded `CharacterData` — and the raw
    `.sff` bytes just read, threaded through unchanged (see

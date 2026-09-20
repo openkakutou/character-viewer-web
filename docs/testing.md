@@ -166,3 +166,15 @@ buttons, confirming the real downloaded file, its filename, the success/
 error status text, and zero console errors — which a Node-side pipeline
 check alone can't confirm (the DOM wiring, the disabled-while-exporting
 buttons, the "no Stand animation" error path).
+
+The folder-only character input (item 015) got a real headless-Chromium
+pass too, since `<input webkitdirectory>`/`DataTransferItem.webkitGetAsEntry()`
+have no jsdom implementation at all and the test suite mocks them: a real
+character folder (`Playwright.setInputFiles` given a directory path, which
+populates `webkitRelativePath` for every file the same way a real OS folder
+picker does) auto-loaded through to the Characteristics panel; a folder
+with two `.def` files showed the radio-group picker naming both by their
+full relative path, with the confirm button disabled until a choice was
+made; and a folder missing its referenced `.sff` showed the exact filename
+in a clear inline error, with "Choose a different folder" clearing it and
+returning focus to the folder input. Zero console errors across all three.

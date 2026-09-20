@@ -1,39 +1,73 @@
-// DOM component for backlog item 003 (character file input): a
-// keyboard/screen-reader-first file picker plus a drag-and-drop zone,
-// both feeding the same accumulating slots from ./character-file-input.ts.
-// See .vibe/decisions/004-character-file-input-interaction-model.md for
-// the interaction model (accumulation across gestures, per-slot error
-// attribution, same-gesture duplicate detection) this view renders.
+// DOM component for backlog item 015 (folder selection as the sole
+// character file input): a native `<input webkitdirectory>` folder picker
+// plus a drag-and-drop zone accepting a dropped folder, replacing item
+// 003's 4-slot per-kind file picker/drop zone outright — see this backlog
+// item's own Notes for why folder selection is the only way to reach
+// sibling files in a browser. Every interactive control is a real native
+// element (folder input, radio inputs inside a `<fieldset>`, buttons)
+// rather than a custom `role="button"` div, so keyboard operability comes
+// for free from the browser. Structure/state-machine shape (Phase, the
+// multi-candidate radio-group picker, the "Choose a different folder"
+// reset control) is ported from the sibling `*-editor`/`*-viewer-web`
+// apps' own already-shipped folder input — see
+// .vibe/decisions/017-folder-only-input-def-files-parse-and-ported-resolution.md.
 import type { CharacterData } from "../wasm/types.ts";
 import {
   type CharacterFileInputOptions,
+  type CharacterFolderLoadResult,
   EXTENSION_BY_KIND,
-  type FileSlots,
-  REQUIRED_FILE_KINDS,
-  type RequiredFileKind,
-  isComplete,
-  loadCharacterFromSlots,
-  mergeFiles,
+  loadCharacterFromChosenDef,
+  loadCharacterFromFolderFiles,
 } from "./character-file-input.ts";
+import type { GatheredFile } from "./folder-entries.ts";
+import {
+  type DataTransferItemLike,
+  filesFromDataTransferItems,
+  filesFromWebkitDirectoryFiles,
+} from "./folder-entries.ts";
 
 export interface CharacterFileInputViewOptions {
   /**
-   * Called once the 4 required files have been read and the character
-   * successfully loaded. `sffBytes` is the same raw `.sff` bytes just read,
-   * threaded through for a caller that needs to decode a specific sprite's
-   * pixels later (`resolveSpritePixels`) — `character`'s own metadata never
-   * carries pixel data.
+   * Called once the 4 required files have been resolved, read, and the
+   * character successfully loaded. `sffBytes` is the same raw `.sff` bytes
+   * just read, threaded through for a caller that needs to decode a
+   * specific sprite's pixels later (`resolveSpritePixels`) — `character`'s
+   * own metadata never carries pixel data.
    */
   onLoaded: (character: CharacterData, sffBytes: Uint8Array) => void;
   /** Forwarded to the file-reading/WASM bridge layer; injectable for testing. */
   bridgeOptions?: CharacterFileInputOptions;
 }
 
+type Phase = "idle" | "loading" | "needs-selection" | "done";
+
+type ErrorResult = Exclude<
+  CharacterFolderLoadResult,
+  { status: "success" | "needs-selection" }
+>;
+
+function formatErrorMessage(result: ErrorResult): string {
+  switch (result.status) {
+    case "no-files":
+      return "Couldn't read anything from the selected folder — your browser may not support folder selection here.";
+    case "no-candidate":
+      return "No .def file found in this folder — expected one like kfm.def.";
+    case "read-error":
+      return `Could not read ${result.error.fileName}: ${result.error.message}`;
+    case "bridge-error":
+      return `Could not load character: ${result.message}`;
+    case "reference-not-found":
+      return result.referencedName === ""
+        ? `The selected .def doesn't reference a ${EXTENSION_BY_KIND[result.kind]} file at all.`
+        : `The selected .def references "${result.referencedName}" for its ${EXTENSION_BY_KIND[result.kind]} file, but that file wasn't found anywhere in the selected folder.`;
+    case "reference-ambiguous":
+      return `The selected .def references "${result.referencedName}" for its ${EXTENSION_BY_KIND[result.kind]} file, but ${result.candidates.length} files in the folder share that name — could not tell which one to use.`;
+  }
+}
+
 /**
- * Renders the character file input into `root`, replacing its previous
- * content. The native file input stays a first-class, fully keyboard- and
- * screen-reader-operable control alongside the drag-and-drop zone — not a
- * drag-and-drop fallback.
+ * Renders the folder-based character input into `root`, replacing its
+ * previous content.
  */
 export function renderCharacterFileInput(
   root: HTMLElement,
@@ -41,13 +75,11 @@ export function renderCharacterFileInput(
 ): void {
   root.replaceChildren();
 
-  let slots: FileSlots = {};
-  const slotErrors: Partial<Record<RequiredFileKind, string>> = {};
-  let ignored: string[] = [];
-  let phase: "collecting" | "loading" | "success" = "collecting";
-  let bridgeErrorMessage: string | null = null;
-  let loadedCharacterName: string | null = null;
-  let acceptedFileNames: string[] = [];
+  let phase: Phase = "idle";
+  let statusText = "";
+  let isError = false;
+  let selectedIndex: number | null = null;
+  let lastGatheredFiles: GatheredFile[] = [];
 
   const panel = document.createElement("wuik-panel");
   panel.className = "file-input";
@@ -57,172 +89,165 @@ export function renderCharacterFileInput(
 
   const label = document.createElement("label");
   label.className = "file-input__label";
-  label.htmlFor = "character-file-picker";
-  label.textContent = "Select the 4 character files (.def, .air, .sff, .cns)";
+  label.htmlFor = "character-folder-picker";
+  label.textContent =
+    "Select a character folder (containing its .def file, e.g. kfm.def)";
 
   const picker = document.createElement("input");
   picker.type = "file";
-  picker.id = "character-file-picker";
+  picker.id = "character-folder-picker";
+  picker.setAttribute("webkitdirectory", "");
   picker.multiple = true;
-  picker.accept = REQUIRED_FILE_KINDS.map(
-    (kind) => EXTENSION_BY_KIND[kind],
-  ).join(",");
 
   const hint = document.createElement("p");
   hint.className = "file-input__hint";
-  hint.textContent = "…or drag and drop them here";
+  hint.textContent = "…or drag and drop a character folder here";
 
   dropZone.append(label, picker, hint);
 
-  const slotList = document.createElement("ul");
-  slotList.className = "file-input__slots";
-  slotList.setAttribute("aria-live", "polite");
-
-  const ignoredNotice = document.createElement("p");
-  ignoredNotice.className = "file-input__ignored";
-  ignoredNotice.hidden = true;
+  const selectionContainer = document.createElement("div");
+  selectionContainer.className = "file-input__selection";
+  selectionContainer.hidden = true;
 
   const status = document.createElement("div");
   status.className = "file-input__status";
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
 
-  panel.append(dropZone, slotList, ignoredNotice, status);
+  const resetButton = document.createElement("button");
+  resetButton.type = "button";
+  resetButton.className = "file-input__reset";
+  resetButton.dataset.action = "reset";
+  resetButton.textContent = "Choose a different folder";
+  resetButton.hidden = true;
+
+  panel.append(dropZone, selectionContainer, status, resetButton);
   root.appendChild(panel);
 
   function render(): void {
+    picker.disabled = phase === "loading";
     dropZone.classList.toggle(
       "file-input__dropzone--loading",
       phase === "loading",
     );
-    picker.disabled = phase === "loading";
-
-    slotList.replaceChildren(
-      ...REQUIRED_FILE_KINDS.map((kind) => {
-        const item = document.createElement("li");
-        item.className = "file-input__slot";
-        item.dataset.kind = kind;
-
-        const file = slots[kind];
-        const error = slotErrors[kind];
-        item.classList.toggle("file-input__slot--filled", Boolean(file));
-        item.classList.toggle("file-input__slot--error", Boolean(error));
-
-        const kindLabel = document.createElement("span");
-        kindLabel.className = "file-input__slot-kind";
-        kindLabel.textContent = EXTENSION_BY_KIND[kind];
-
-        const value = document.createElement("span");
-        value.className = "file-input__slot-value";
-        value.textContent = file ? file.name : "Missing";
-
-        item.append(kindLabel, value);
-
-        if (error) {
-          const errorEl = document.createElement("span");
-          errorEl.className = "file-input__slot-error-text";
-          errorEl.textContent = error;
-          item.appendChild(errorEl);
-        }
-
-        return item;
-      }),
-    );
-
-    if (ignored.length > 0) {
-      ignoredNotice.textContent = `Ignored (unrecognized file type): ${ignored.join(", ")}`;
-      ignoredNotice.hidden = false;
-    } else {
-      ignoredNotice.textContent = "";
-      ignoredNotice.hidden = true;
-    }
-
-    if (phase === "loading") {
-      status.textContent = "Loading character…";
-    } else if (phase === "success") {
-      status.textContent = `Character loaded: ${loadedCharacterName} (files: ${acceptedFileNames.join(", ")})`;
-    } else if (bridgeErrorMessage) {
-      status.textContent = `Could not load character: ${bridgeErrorMessage}`;
-    } else {
-      status.textContent = "";
-    }
+    status.classList.toggle("file-input__status--error", isError);
+    status.textContent = statusText;
+    resetButton.hidden = phase === "idle" || phase === "loading";
+    selectionContainer.hidden = phase !== "needs-selection";
   }
 
-  async function tryAutoLoad(): Promise<void> {
-    if (!isComplete(slots)) return;
-
-    phase = "loading";
-    bridgeErrorMessage = null;
+  function resetToIdle(): void {
+    phase = "idle";
+    statusText = "";
+    isError = false;
+    selectedIndex = null;
+    picker.value = "";
+    selectionContainer.replaceChildren();
     render();
+    picker.focus();
+  }
 
-    const result = await loadCharacterFromSlots(slots, options.bridgeOptions);
+  function renderSelection(candidates: GatheredFile[]): void {
+    selectionContainer.replaceChildren();
+    selectedIndex = null;
+
+    const fieldset = document.createElement("fieldset");
+    const legend = document.createElement("legend");
+    legend.textContent = "Which file is the character?";
+    fieldset.appendChild(legend);
+
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.dataset.action = "confirm-selection";
+    confirmButton.textContent = "Load selected file";
+    confirmButton.disabled = true;
+
+    candidates.forEach((candidate, index) => {
+      const optionLabel = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "character-def-candidate";
+      input.value = String(index);
+      // A jsdom quirk: `.click()` on a radio reliably toggles `.checked`
+      // but doesn't reliably synthesize a "change" event under this
+      // project's pinned jsdom — read the selection from "click" instead.
+      // Real browsers also fire "click" for keyboard (arrow-key roving)
+      // selection within a native radio group, so this stays fully
+      // keyboard-operable.
+      input.addEventListener("click", () => {
+        selectedIndex = index;
+        confirmButton.disabled = false;
+      });
+      optionLabel.append(
+        input,
+        document.createTextNode(` ${candidate.relativePath}`),
+      );
+      fieldset.appendChild(optionLabel);
+    });
+
+    confirmButton.addEventListener("click", () => {
+      if (selectedIndex === null) return;
+      const chosen = candidates[selectedIndex];
+      phase = "loading";
+      statusText = `Reading ${chosen.file.name}…`;
+      isError = false;
+      render();
+      void finishLoading(
+        loadCharacterFromChosenDef(
+          chosen,
+          lastGatheredFiles,
+          options.bridgeOptions,
+        ),
+      );
+    });
+
+    selectionContainer.append(fieldset, confirmButton);
+  }
+
+  async function finishLoading(
+    resultPromise: Promise<CharacterFolderLoadResult>,
+  ): Promise<void> {
+    const result = await resultPromise;
 
     if (result.status === "success") {
-      phase = "success";
-      loadedCharacterName = result.character.name;
-      acceptedFileNames = REQUIRED_FILE_KINDS.map(
-        (kind) => slots[kind]?.name ?? "",
-      );
+      phase = "done";
+      isError = false;
+      statusText = `Character loaded: ${result.character.name}`;
       render();
       options.onLoaded(result.character, result.sffBytes);
       return;
     }
 
-    if (result.status === "read-error") {
-      // Drop just the offending slot so the user can re-supply that one
-      // file without losing the other 3 already-good ones.
-      delete slots[result.error.kind];
-      slotErrors[result.error.kind] = result.error.message;
-      phase = "collecting";
+    if (result.status === "needs-selection") {
+      phase = "needs-selection";
+      isError = false;
+      statusText = `Found ${result.candidates.length} .def files in the selected folder — pick which one is the character.`;
+      renderSelection(result.candidates);
       render();
       return;
     }
 
-    // bridge-error: nothing file-specific to blame, so all 4 slots stay
-    // filled — the user retries by re-dropping any file, which triggers a
-    // fresh attempt.
-    phase = "collecting";
-    bridgeErrorMessage = result.message;
+    phase = "done";
+    isError = true;
+    statusText = formatErrorMessage(result);
     render();
   }
 
-  function handleIncomingFiles(files: File[]): void {
-    if (files.length === 0) return;
-
-    const previousSlots = slots;
-    const merged = mergeFiles(slots, files);
-    slots = merged.slots;
-    ignored = merged.ignored.map((file) => file.name);
-    bridgeErrorMessage = null;
-
-    for (const duplicate of merged.duplicates) {
-      slotErrors[duplicate.kind] =
-        `Two files given for ${EXTENSION_BY_KIND[duplicate.kind]}: ` +
-        `${duplicate.fileNames.join(", ")} — pick one and try again.`;
-    }
-
-    // Only a slot actually resupplied in this gesture clears its previous
-    // error; an untouched slot's stale error (if any) is left alone.
-    for (const kind of REQUIRED_FILE_KINDS) {
-      const isDuplicateThisGesture = merged.duplicates.some(
-        (duplicate) => duplicate.kind === kind,
-      );
-      if (!isDuplicateThisGesture && slots[kind] !== previousSlots[kind]) {
-        delete slotErrors[kind];
-      }
-    }
-
-    phase = "collecting";
+  function handleGathered(files: GatheredFile[]): void {
+    lastGatheredFiles = files;
+    phase = "loading";
+    isError = false;
+    statusText = "Reading the selected folder…";
     render();
-
-    if (merged.duplicates.length === 0) {
-      void tryAutoLoad();
-    }
+    void finishLoading(
+      loadCharacterFromFolderFiles(files, options.bridgeOptions),
+    );
   }
 
   picker.addEventListener("change", () => {
-    handleIncomingFiles(Array.from(picker.files ?? []));
-    picker.value = "";
+    handleGathered(
+      filesFromWebkitDirectoryFiles(Array.from(picker.files ?? [])),
+    );
   });
 
   dropZone.addEventListener("dragenter", (event) => {
@@ -238,8 +263,17 @@ export function renderCharacterFileInput(
   dropZone.addEventListener("drop", (event) => {
     event.preventDefault();
     dropZone.classList.remove("file-input__dropzone--dragging");
-    const dataTransfer = (event as DragEvent).dataTransfer;
-    handleIncomingFiles(dataTransfer ? Array.from(dataTransfer.files) : []);
+    const dataTransfer = (event as DragEvent).dataTransfer as unknown as {
+      items: readonly DataTransferItemLike[];
+    } | null;
+    const items = dataTransfer ? Array.from(dataTransfer.items) : [];
+    void filesFromDataTransferItems(items).then((files) =>
+      handleGathered(files),
+    );
+  });
+
+  resetButton.addEventListener("click", () => {
+    resetToIdle();
   });
 
   render();

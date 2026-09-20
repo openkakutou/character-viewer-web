@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Loading a character is now done by picking or dropping a whole character folder, instead of selecting the 4 files one by one. If the folder has exactly one `.def` file, it's used automatically; if it has more than one, you're asked which one is the character. The app then finds the referenced sprite/animation/constants files by the exact name the `.def` gives for them — a folder with extra or leftover files of the same type no longer causes the wrong one to load. A referenced file that can't be found anywhere in the folder shows a clear error naming it, with a "Choose a different folder" option to retry.
+
 ## [0.12.0] - 2026-09-20
 
 ### Added

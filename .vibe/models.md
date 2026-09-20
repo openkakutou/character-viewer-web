@@ -102,7 +102,7 @@ The typed outcome of `loadCharacter`: a discriminated union so a failure (malfor
 Defined in: `src/wasm/types.ts`
 
 ## CharacterInputResult
-The typed outcome of `loadCharacterFromSlots`: success, a specific file's read failure, or the WASM bridge's own reported error — never a thrown exception. On success, `sffBytes` is the same raw `.sff` bytes already read (not re-read), threaded through for on-demand sprite pixel decoding (see `SpritePixelResult`).
+The typed outcome of reading a resolved set of folder files and calling the WASM bridge: success, a specific file's read failure, or the WASM bridge's own reported error — never a thrown exception. On success, `sffBytes` is the same raw `.sff` bytes already read (not re-read), threaded through for on-demand sprite pixel decoding (see `SpritePixelResult`).
 
 ```ts
 { status: "success"; character: CharacterData; sffBytes: Uint8Array }
@@ -110,6 +110,38 @@ The typed outcome of `loadCharacterFromSlots`: success, a specific file's read f
 | { status: "bridge-error"; message: string }
 ```
 Defined in: `src/input/character-file-input.ts`
+
+## CharacterFolderLoadResult
+The typed outcome of a full folder-based load (item 015): `CharacterInputResult`'s own 3 outcomes plus every earlier stage that can end the attempt first — no `.def` found at all, several `.def` candidates needing a user choice, or a required referenced file not found/ambiguous.
+
+```ts
+CharacterInputResult
+| { status: "no-files" }
+| { status: "no-candidate" }
+| { status: "needs-selection"; candidates: GatheredFile[] }
+| { status: "reference-not-found"; kind: "air" | "sff" | "cns"; referencedName: string }
+| { status: "reference-ambiguous"; kind: "air" | "sff" | "cns"; referencedName: string; candidates: GatheredFile[] }
+```
+Defined in: `src/input/character-file-input.ts`
+
+## GatheredFile
+One file gathered from a folder selection or drop, paired with its path relative to the folder root.
+
+| Field | Type |
+|---|---|
+| file | File |
+| relativePath | string |
+Defined in: `src/input/folder-entries.ts`
+
+## DefFileReferences
+The 3 sibling filenames a `.def`'s own `[Files]` section references, read by a deliberately minimal local parse ahead of the real WASM load call (item 015) — empty string means the key wasn't set.
+
+| Field | Type |
+|---|---|
+| spriteFile | string |
+| animationFile | string |
+| constantsFile | string |
+Defined in: `src/input/def-files-section.ts`
 
 ## SpritePixelResult
 The typed outcome of decoding one sprite's pixels via `resolveSpritePixels` — a discriminated union, never a thrown exception.
@@ -149,11 +181,3 @@ Identifies which required file failed to be read as bytes, and why.
 | message | string | |
 Defined in: `src/input/character-file-input.ts`
 
-## DuplicateKindError
-Reports that a single `mergeFiles` call supplied more than one file for the same required kind.
-
-| Field | Type |
-|---|---|
-| kind | RequiredFileKind |
-| fileNames | string[] |
-Defined in: `src/input/character-file-input.ts`
