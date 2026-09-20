@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 depends_on: [003]
 ---
 # Folder Selection as the Sole Character File Input Method
@@ -10,11 +10,11 @@ Folder selection becomes the **only** way to load a character on this web app, r
 This is a static site with no backend and no planned desktop build for this app (unlike the sibling `*-editor` apps — see Notes), so this is the final, single input model for the whole project, not an interim option alongside others.
 
 ## Acceptance Criteria
-- [ ] The character file input is folder selection only — item 003's standalone multi-file picker/drop zone is removed, not kept alongside this
-- [ ] If the folder contains exactly one `.def` file, it is used automatically as the entry point
-- [ ] If the folder contains multiple `.def` files, the user is prompted to pick which one to load, instead of the app silently choosing one
-- [ ] The `.air`/`.sff`/`.cns` files are located by the filename the chosen `.def` actually references (searching subfolder depth as needed), not by matching "any file with this extension"
-- [ ] A file the `.def` references but that cannot be found anywhere in the folder shows a clear error state naming which referenced file is missing, same UX as item 003's missing-file case
+- [x] The character file input is folder selection only — item 003's standalone multi-file picker/drop zone is removed, not kept alongside this
+- [x] If the folder contains exactly one `.def` file, it is used automatically as the entry point
+- [x] If the folder contains multiple `.def` files, the user is prompted to pick which one to load, instead of the app silently choosing one
+- [x] The `.air`/`.sff`/`.cns` files are located by the filename the chosen `.def` actually references (searching subfolder depth as needed), not by matching "any file with this extension"
+- [x] A file the `.def` references but that cannot be found anywhere in the folder shows a clear error state naming which referenced file is missing, same UX as item 003's missing-file case
 
 ## Notes
 Item 003 stays `status: done` as the historical record of the original implementation; this item's first acceptance criterion explicitly calls for removing that UI once folder selection lands, not leaving both. Item 010 (zip-archive input) has been dropped from the backlog entirely — a single web input path was chosen over maintaining three (individual files / zip / folder).
