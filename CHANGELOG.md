@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The Animation Player now has "Export GIF" and "Export Stand" buttons. "Export GIF" downloads the currently selected animation as an animated GIF, using the current palette and correct per-frame timing. "Export Stand" downloads the character's standing animation in one click, without needing to find and select it first. A frame with no sprite exports as a blank, transparent frame instead of breaking the export, and trying to export a Stand animation the character doesn't have shows a clear message instead of downloading a broken file.
+
 ## [0.11.0] - 2026-09-17
 
 ### Added

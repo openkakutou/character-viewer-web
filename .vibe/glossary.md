@@ -9,6 +9,11 @@ An ordered sequence of Frames plus the point at which playback loops back once i
 **Do not confuse with:** Frame, which is a single step of an Animation.
 _Sources: `src/wasm/types.ts`_
 
+## Stand animation
+The Animation numbered 0 — MUGEN/Ikemen GO's own engine convention for a character's standing animation, the same one real character folders' pre-rendered `standN.gif` preview files are built from. This app has no name field to match "Stand" by text, so it identifies it purely by that number, independent of any State/Statedef.
+**Do not confuse with:** State, whose own "standing" State (conventionally State 0) is a distinct behavioral concept this app never consults to identify the Stand animation.
+_Sources: `src/export/gif-export.ts`_
+
 ## Frame
 A single displayed image within an Animation: which Sprite to show, where to show it, how long to hold it, how to mirror/blend it, and the collision boxes active while it is displayed. A Frame can also be blank — its Sprite reference uses the `.air` format's "no sprite shown" sentinel (any negative group/image value) — meaning it deliberately displays nothing rather than referencing a real Sprite.
 _Sources: `src/wasm/types.ts`, `src/viewer/animation-player.ts`_

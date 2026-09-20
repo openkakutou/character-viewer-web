@@ -88,6 +88,13 @@ microtask with `await vi.advanceTimersByTimeAsync(0)` instead — that
 resolves the in-flight decode promise without moving fake time forward far
 enough to reach the next scheduled tick.
 
+jsdom implements neither `URL.createObjectURL`/`revokeObjectURL` nor a
+working anchor-element download. `gif-export.ts`'s `renderGifExportControls`
+takes the actual file-save step (`triggerDownload`) as an injectable option
+for this reason — the real Blob-URL + anchor-click implementation is only
+exercised via real-browser verification (see below), same shape as
+`sprite-browser.ts`'s own `drawPixels`.
+
 ## Testable-by-construction patterns
 
 Every layer that touches the outside world (network `fetch`, WASM
@@ -140,3 +147,22 @@ still-active previous override, and resetting back to the character's own
 colors — zero console errors throughout, and no bugs found needing a fix
 this time (unlike the sprite browser/animation player passes above, which
 did surface real issues at the time).
+
+GIF export (item 014) got two separate real-tool passes, since its own
+correctness isn't fully checkable by reading DOM/stub calls alone. First, a
+Node-side pass fed the real `gifenc` pipeline a multi-frame, multi-size,
+blank-frame-containing animation with deliberately transparent regions and
+verified the output bytes with Python's Pillow (frame count, canvas size,
+per-frame duration, and per-pixel color/transparency) — this is what caught
+a real bug: `gifenc`'s `applyPalette` matches nearest color on the raw RGBA
+buffer with no alpha-aware clearing step of its own, so a transparent pixel
+whose original color happened to tie-distance between the palette's
+transparent entry and an unrelated opaque one could lose the tie and render
+as a solid color instead of transparent — fixed by zeroing RGB on any
+alpha-0 pixel during compositing (a regression test now pins this in
+`gif-export.test.ts`). Second, a real headless-Chromium pass drove the
+actual app end to end — loading a real character fixture, exporting both
+buttons, confirming the real downloaded file, its filename, the success/
+error status text, and zero console errors — which a Node-side pipeline
+check alone can't confirm (the DOM wiring, the disabled-while-exporting
+buttons, the "no Stand animation" error path).

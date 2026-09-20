@@ -16,8 +16,10 @@ flowchart LR
     shell --> input["input\n(src/input/)"]
     shell --> viewer["viewer\n(src/viewer/)"]
     shell --> gamemode["game-mode\n(src/game-mode/)"]
+    viewer --> export["export\n(src/export/)"]
     input --> wasm["wasm\n(src/wasm/)"]
     viewer --> wasm
+    export --> wasm
     gamemode --> wasm
     gamemode --> viewer
     wasm -.->|fetch + WebAssembly.instantiate| module["character.wasm\n(public/wasm/, gitignored)"]
@@ -101,6 +103,25 @@ flowchart LR
   see `.vibe/decisions/010-palette-picker-scope-and-external-override-only.md`
   for why an embedded-bank picker isn't possible with the current WASM
   contract, and "Data flow: applying a palette override" below.
+  `animation-timing.ts` holds the pure `.air` timing helpers
+  (`MS_PER_TICK`, `effectiveTickDuration`, `isBlankFrame`) shared by
+  playback (`animation-player.ts`) and export (`export/gif-export.ts`)
+  alike, re-exported from `animation-player.ts` so every existing import
+  site keeps working unchanged.
+- **`export`** (`src/export/`, item 014) — `gif-export.ts` builds a
+  downloadable animated GIF from an already-loaded Animation, reusing the
+  same resolved-sprite + palette pipeline `viewer/animation-player.ts`
+  already uses rather than a separate rendering path. Since a GIF's
+  logical screen has one fixed size shared by every frame, frames whose
+  sprites differ in size are first composited onto one shared canvas,
+  axis-point-aligned the same way the collision-box overlay already is —
+  see `.vibe/decisions/015-gif-export-frame-compositing.md` — then
+  quantized and encoded with the [`gifenc`](https://github.com/mattdesl/gifenc)
+  library. `renderGifExportControls` mounts "Export GIF" (the animation
+  and palette currently shown in the Animation section) and "Export Stand"
+  (always Animation 0, MUGEN/Ikemen's own "standing animation" convention
+  — see `.vibe/decisions/016-stand-animation-identification-and-export-filenames.md`)
+  into that section's own panel.
 - **`game-mode`** (`src/game-mode/`) — the in-game preview (items 008, 009).
   `animation-triggers.ts` renders the In-game preview section: a scrollable
   list with one button per animation, played live the moment its button is
@@ -218,3 +239,31 @@ and under the test suite's jsdom environment (`.vibe/decisions/002-wasm-bridge-l
    including the palette picker, from a brand-new closure with no override
    — nothing from a previous character's override bytes can carry forward
    by construction.
+
+## Data flow: exporting an animation as a GIF
+
+1. Clicking "Export GIF" or "Export Stand" in the Animation section reads
+   the currently selected animation (or, for "Export Stand", `Animation 0`
+   specifically — `null` if the character defines none) and whatever
+   palette override is currently active, both captured synchronously at
+   click time so a later selection/palette change can never affect an
+   export already in flight.
+2. `computeGifCanvasLayout` sizes one shared canvas from sprite *metadata*
+   alone (no decode yet) — the union of every referenced sprite's bounding
+   box relative to its own axis point — and computes each frame's own draw
+   offset onto it.
+3. Every frame's sprite is resolved in one deduplicated, batched
+   `wasm.resolveSpritePixels` call (the same bridge call every other
+   screen uses), with the captured palette override applied. Any decode
+   error aborts the export with that error, rather than producing a
+   partial or broken file.
+4. Each frame's pixels are composited onto the shared canvas at their
+   computed offset, quantized to a per-frame palette, and written to the
+   GIF with that frame's own tick-derived duration (`effectiveTickDuration`
+   × `MS_PER_TICK`, shared with playback). A blank frame (the `.air`
+   "no sprite" sentinel) is written as a single fully transparent color
+   instead of being decoded at all.
+5. The finished bytes are handed to a real Blob + anchor-click download —
+   jsdom implements neither `URL.createObjectURL` nor a working anchor
+   download, so this one step is injected for testing, same pattern as
+   `sprite-browser.ts`'s own canvas-drawing default.

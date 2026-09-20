@@ -7,6 +7,10 @@
 // upstream are documented in
 // .vibe/decisions/009-animation-player-timing-looping-and-collision-overlay-design.md.
 import {
+  type GifExportControlsOptions,
+  renderGifExportControls,
+} from "../export/gif-export.ts";
+import {
   type SpritePixelResult,
   type WasmBridgeOptions,
   resolveSpritePixels as defaultResolveSpritePixels,
@@ -18,30 +22,17 @@ import type {
   Frame,
   Sprite,
 } from "../wasm/types.ts";
+import {
+  MS_PER_TICK,
+  effectiveTickDuration,
+  isBlankFrame,
+} from "./animation-timing.ts";
 import { computeScaleToFit, defaultDrawPixels } from "./sprite-browser.ts";
 
-/** One game tick, in milliseconds — MUGEN/Ikemen GO's standard 60-ticks/second engine rate (see the ADR above). */
-export const MS_PER_TICK = 1000 / 60;
-
-/**
- * How long (in ticks) a frame should hold before advancing. A non-positive
- * value — including MUGEN's real "-1 = hold forever" convention — is
- * clamped to a minimum 1-tick hold; true infinite-hold semantics are out of
- * scope for this item (see the ADR above).
- */
-export function effectiveTickDuration(frame: Frame): number {
-  return Math.max(frame.time, 1);
-}
-
-/**
- * A frame is blank when its sprite reference uses the `.air` "no sprite
- * shown" sentinel — any negative value on `group` and/or `image`, not just
- * the `-1,-1` pair — matching the `character` library's own `IsBlank()`
- * convention.
- */
-export function isBlankFrame(frame: Frame): boolean {
-  return frame.group < 0 || frame.image < 0;
-}
+// Re-exported so every existing import site (game-mode/*, this file's own
+// tests) keeps working unchanged — see animation-timing.ts's own header for
+// why these moved out of this file.
+export { MS_PER_TICK, effectiveTickDuration, isBlankFrame };
 
 /**
  * Clamps `loopStart` into a valid frame index for `framesLength`, defaulting
@@ -177,6 +168,10 @@ export interface AnimationPlayerOptions {
     axisX: number,
     axisY: number,
   ) => void;
+  /** Encodes an Animation to GIF bytes (item 014's "Export GIF"/"Export Stand"). Defaults to the real gifenc-based encoder; injectable for testing. */
+  encodeAnimationGif?: GifExportControlsOptions["encodeAnimationGif"];
+  /** Saves the encoded GIF bytes as a downloaded file. Defaults to a real Blob + anchor-click download; injectable for testing (jsdom has no `URL.createObjectURL`). */
+  triggerDownload?: GifExportControlsOptions["triggerDownload"];
 }
 
 /** Returned by `renderAnimationPlayer` so a caller (the palette picker, or the workspace shell) can drive it without a full re-render, preserving playback position/state. */
@@ -318,7 +313,10 @@ export function renderAnimationPlayer(
   const status = document.createElement("p");
   status.className = "animation-player__preview-status";
 
-  panel.append(controls, stage, status);
+  const exportRow = document.createElement("div");
+  exportRow.className = "animation-player__export";
+
+  panel.append(controls, stage, status, exportRow);
   root.appendChild(panel);
 
   let currentAnimation: Animation = sortedAnimations[0];
@@ -335,6 +333,20 @@ export function renderAnimationPlayer(
   // displayed" entry point the collision-overlay toggle relies on) to
   // apply a palette change without disturbing playback state.
   let activeOverride: Uint8Array | null = null;
+
+  renderGifExportControls(
+    exportRow,
+    character,
+    sffBytesNonNull,
+    () => currentAnimation,
+    () => activeOverride,
+    {
+      resolveSpritePixels: options.resolveSpritePixels,
+      bridgeOptions: options.bridgeOptions,
+      encodeAnimationGif: options.encodeAnimationGif,
+      triggerDownload: options.triggerDownload,
+    },
+  );
 
   function currentFrame(): Frame {
     return currentAnimation.frames[currentFrameIndex];

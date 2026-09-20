@@ -120,6 +120,25 @@ The typed outcome of decoding one sprite's pixels via `resolveSpritePixels` — 
 `pixels` is a flat, row-major, straight-alpha RGBA buffer (`width * height * 4` bytes) — directly usable with `ImageData`.
 Defined in: `src/wasm/bridge.ts`
 
+## GifExportResult
+The typed outcome of `encodeAnimationGif` (item 014) — a discriminated union, never a thrown exception, same shape as `SpritePixelResult`/`CharacterResult`.
+
+```ts
+{ ok: true; bytes: Uint8Array } | { ok: false; error: string }
+```
+`bytes` is a complete, ready-to-download GIF89a byte stream.
+Defined in: `src/export/gif-export.ts`
+
+## GifCanvasLayout
+The shared canvas every frame of one exported GIF is composited onto (item 014), computed from sprite metadata alone before any pixel decode — see `.vibe/decisions/015-gif-export-frame-compositing.md`.
+
+| Field | Type | Notes |
+|---|---|---|
+| width | number | |
+| height | number | |
+| frameOffsets | (`{x: number; y: number}` \| null)[] | same length/order as the source frames; `null` for a frame with nothing to draw |
+Defined in: `src/export/gif-export.ts`
+
 ## FileReadError
 Identifies which required file failed to be read as bytes, and why.
 

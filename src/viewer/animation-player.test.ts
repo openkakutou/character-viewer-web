@@ -584,6 +584,96 @@ describe("renderAnimationPlayer", () => {
     expect(root.children).toHaveLength(0);
   });
 
+  describe("GIF export (backlog item 014)", () => {
+    it("mounts Export GIF / Export Stand controls when a character with animations is loaded", () => {
+      const root = document.createElement("div");
+      renderAnimationPlayer(
+        root,
+        characterWithAnimations([
+          { number: 0, frames: [frame()], loopStart: 0 },
+        ]),
+        sffBytes,
+      );
+      expect(
+        root.querySelector(".animation-player__export-gif"),
+      ).not.toBeNull();
+      expect(
+        root.querySelector(".animation-player__export-stand"),
+      ).not.toBeNull();
+    });
+
+    it("mounts no export controls for a character with no animations", () => {
+      const root = document.createElement("div");
+      renderAnimationPlayer(root, characterWithAnimations([]), sffBytes);
+      expect(root.querySelector(".animation-player__export-gif")).toBeNull();
+      expect(root.querySelector(".animation-player__export-stand")).toBeNull();
+    });
+
+    it("exports the animation currently selected in the dropdown, not just the first one", async () => {
+      const root = document.createElement("div");
+      const encodeAnimationGif = vi
+        .fn()
+        .mockResolvedValue({ ok: true, bytes: new Uint8Array([1]) });
+      const character = characterWithAnimations([
+        { number: 0, frames: [frame()], loopStart: 0 },
+        { number: 5, frames: [frame()], loopStart: 0 },
+      ]);
+      renderAnimationPlayer(root, character, sffBytes, {
+        encodeAnimationGif,
+        triggerDownload: vi.fn(),
+      });
+
+      const select = root.querySelector<HTMLSelectElement>(
+        ".animation-player__select",
+      );
+      if (select) select.value = "5";
+      select?.dispatchEvent(new Event("change"));
+
+      root
+        .querySelector<HTMLButtonElement>(".animation-player__export-gif")
+        ?.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(encodeAnimationGif).toHaveBeenCalledWith(
+        sffBytes,
+        character,
+        expect.objectContaining({ number: 5 }),
+        null,
+        expect.anything(),
+      );
+    });
+
+    it("exports with the palette override currently applied via setPaletteOverride", async () => {
+      const root = document.createElement("div");
+      const encodeAnimationGif = vi
+        .fn()
+        .mockResolvedValue({ ok: true, bytes: new Uint8Array([1]) });
+      const character = characterWithAnimations([
+        { number: 0, frames: [frame()], loopStart: 0 },
+      ]);
+      const handle = renderAnimationPlayer(root, character, sffBytes, {
+        encodeAnimationGif,
+        triggerDownload: vi.fn(),
+      });
+
+      const override = new Uint8Array([7, 7, 7]);
+      handle.setPaletteOverride(override);
+
+      root
+        .querySelector<HTMLButtonElement>(".animation-player__export-gif")
+        ?.click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(encodeAnimationGif).toHaveBeenCalledWith(
+        sffBytes,
+        character,
+        expect.anything(),
+        override,
+        expect.anything(),
+      );
+    });
+  });
+
   describe("pause() (backlog item 020 — auto-pause when the section is hidden)", () => {
     it("stops an in-progress playback at the current frame and shows the paused control state", async () => {
       const root = document.createElement("div");

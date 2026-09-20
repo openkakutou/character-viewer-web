@@ -500,6 +500,61 @@ wuik-app-shell {
 }
 
 /*
+ * GIF export (backlog item 014). Its own row below the stage/status rather
+ * than folded into `__controls` above it — these two actions produce a
+ * downloadable file rather than changing what's currently previewed, so
+ * they read as a distinct group. "Export Stand" is styled as a secondary
+ * action (outline, not filled) so the two buttons stay visually
+ * distinguishable at a glance — confirmed via frontend-design expert
+ * consultation for this item, whose own risk was a same-styled pair being a
+ * mis-click source since both downloads look identical until opened.
+ */
+
+.animation-player__export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--wuik-space-3);
+}
+
+.animation-player__export-gif,
+.animation-player__export-stand {
+  font: inherit;
+  padding: var(--wuik-space-1) var(--wuik-space-3);
+  border-radius: var(--wuik-space-1);
+  cursor: pointer;
+}
+
+.animation-player__export-gif:disabled,
+.animation-player__export-stand:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.animation-player__export-gif {
+  color: var(--wuik-color-text-on-accent);
+  background-color: var(--wuik-color-accent);
+  border: 1px solid var(--wuik-color-accent);
+}
+
+.animation-player__export-stand {
+  color: var(--wuik-color-text);
+  background-color: transparent;
+  border: 1px solid var(--wuik-color-border);
+}
+
+.animation-player__export-status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.animation-player__export-status--error {
+  color: var(--wuik-color-text);
+}
+
+/*
  * In-game preview / animation triggers (backlog item 008). Same panel/stage
  * rhythm as the sprite browser and animation player above; the list sits on
  * one side (independently scrollable, same sizing as the sprite browser's
