@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 ---
 # Adopt `<wuik-viewport>` For Sprite Preview
 
