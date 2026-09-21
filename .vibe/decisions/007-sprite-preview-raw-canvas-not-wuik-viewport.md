@@ -1,6 +1,6 @@
 ---
 date: 2026-08-11
-status: accepted
+status: superseded by 018
 ---
 # Sprite preview uses a raw `<canvas>` with integer scale-to-fit, not `<wuik-viewport>`
 

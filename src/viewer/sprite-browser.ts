@@ -3,10 +3,14 @@
 // is never part of `CharacterData` (metadata only — see wasm/types.ts), so
 // decoding happens on demand, one sprite at a time, via the WASM bridge's
 // separate resolveSpritePixels call and the raw `.sff` bytes threaded
-// through from the file input (.vibe/decisions/006). The preview uses a
-// plain <canvas> with a locally-computed scale-to-fit rather than
-// web-ui-kit's `<wuik-viewport>` — that control isn't actually installable
-// yet, see .vibe/decisions/007-sprite-preview-raw-canvas-not-wuik-viewport.md.
+// through from the file input (.vibe/decisions/006). The preview canvas is
+// wrapped in web-ui-kit's `<wuik-viewport>` for zoom/pan/reset-to-fit
+// (backlog item 016, .vibe/decisions/018) — that control was not
+// installable when this screen first shipped, so it used a local
+// scale-to-fit instead (.vibe/decisions/007, now superseded). That local
+// scale-to-fit, `computeScaleToFit`, stays exported here for the animation
+// player (animation-player.ts, item 007), which still uses it for its own
+// preview and is out of item 016's scope.
 import {
   type SpritePixelResult,
   type WasmBridgeOptions,
@@ -56,6 +60,17 @@ export function defaultDrawPixels(
     0,
     0,
   );
+}
+
+/**
+ * Calls a `<wuik-viewport>` element's `resetToFit()` if it's actually the
+ * real, registered custom element — a plain jsdom `HTMLElement` (this
+ * project's test environment never registers `@openkakutou/web-ui-kit`'s
+ * custom elements) has no such method, so this is a silent no-op there;
+ * the real behavior is verified by a real-browser runtime pass instead.
+ */
+function resetViewportToFit(viewport: HTMLElement): void {
+  (viewport as unknown as { resetToFit?: () => void }).resetToFit?.();
 }
 
 export interface SpriteBrowserOptions {
@@ -138,16 +153,17 @@ export function renderSpriteBrowser(
   const preview = document.createElement("div");
   preview.className = "sprite-browser__preview";
 
-  const stage = document.createElement("div");
-  stage.className = "sprite-browser__stage";
+  const viewport = document.createElement("wuik-viewport");
+  viewport.className = "sprite-browser__viewport";
   const canvas = document.createElement("canvas");
   canvas.className = "sprite-browser__canvas";
-  stage.appendChild(canvas);
+  canvas.hidden = true;
+  viewport.appendChild(canvas);
 
   const status = document.createElement("p");
   status.className = "sprite-browser__preview-status";
 
-  preview.append(stage, status);
+  preview.append(viewport, status);
 
   // Guards against a slower, superseded decode overwriting a newer
   // selection's preview: only the response matching the *current* token is
@@ -187,12 +203,10 @@ export function renderSpriteBrowser(
         return;
       }
 
-      const scale = computeScaleToFit(result.width, result.height);
-      canvas.style.width = `${result.width * scale}px`;
-      canvas.style.height = `${result.height * scale}px`;
       drawPixels(canvas, result.pixels, result.width, result.height);
       canvas.hidden = false;
       status.textContent = "";
+      resetViewportToFit(viewport);
     });
   }
 

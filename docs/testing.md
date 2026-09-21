@@ -88,6 +88,20 @@ microtask with `await vi.advanceTimersByTimeAsync(0)` instead — that
 resolves the in-flight decode promise without moving fake time forward far
 enough to reach the next scheduled tick.
 
+`<wuik-viewport>`'s own `resetToFit()` method (used by `sprite-browser.ts`
+to fit the preview to a newly decoded sprite) doesn't exist on this
+project's test environment's element at all — `main.ts` registers
+`@openkakutou/web-ui-kit`'s real custom elements for the actual app, but
+`sprite-browser.test.ts` mounts against a plain `document.createElement`
+call without that registration, so `document.createElement("wuik-viewport")`
+returns an inert, unregistered `HTMLElement`. `resetViewportToFit` calls the
+method through an optional-chaining guard (`el.resetToFit?.()`) for this
+reason, making it a silent no-op under test; a test that needs to assert
+the call happened stubs `resetToFit` directly onto the mounted element
+before triggering a selection, rather than relying on jsdom to provide a
+real one. The real zoom/pan/reset behavior is only exercised via
+real-browser verification (see below).
+
 jsdom implements neither `URL.createObjectURL`/`revokeObjectURL` nor a
 working anchor-element download. `gif-export.ts`'s `renderGifExportControls`
 takes the actual file-save step (`triggerDownload`) as an injectable option
@@ -166,6 +180,16 @@ buttons, confirming the real downloaded file, its filename, the success/
 error status text, and zero console errors — which a Node-side pipeline
 check alone can't confirm (the DOM wiring, the disabled-while-exporting
 buttons, the "no Stand animation" error path).
+
+Adopting `<wuik-viewport>` for the sprite preview (item 016) got its own
+real headless-Chromium pass: a selected sprite renders fit to the preview
+box (confirmed both visually via screenshot and by reading back the
+element's own `getTransform()`), scrolling the mouse wheel over it zooms
+centered near the cursor, dragging pans it (the transform's `x`/`y` shift
+matched the drag distance exactly), and re-selecting a sprite afterward
+resets the transform back to the exact same fit values as the initial
+selection — confirming the zoom/pan state never leaks across selections.
+Zero console errors throughout.
 
 The folder-only character input (item 015) got a real headless-Chromium
 pass too, since `<input webkitdirectory>`/`DataTransferItem.webkitGetAsEntry()`

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The Sprites panel's preview can now be zoomed and panned: scroll the mouse wheel over it to zoom (centered on the cursor), drag to pan, and it still opens fit to the selected sprite the same way as before. Fully usable from the keyboard too (arrow keys pan, +/- zoom, 0/Home resets the view).
+
 ## [0.13.0] - 2026-09-20
 
 ### Added

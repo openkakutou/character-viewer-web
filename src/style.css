@@ -412,10 +412,9 @@ wuik-app-shell {
   min-width: 12em;
 }
 
-.sprite-browser__stage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.sprite-browser__viewport {
+  display: block;
+  width: 100%;
   height: 16em;
   background-color: var(--wuik-color-surface);
   border: 1px solid var(--wuik-color-border);

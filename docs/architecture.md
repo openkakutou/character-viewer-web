@@ -95,15 +95,17 @@ flowchart LR
   sprite groups (expanding one lazily mounts only its own sprites, so a
   sheet with hundreds of sprites never dumps hundreds of DOM rows at once)
   and a preview `<canvas>` that decodes and shows the selected sprite's
-  actual pixels on demand via `wasm`'s `resolveSpritePixels`, scaled to fit
-  a fixed-size stage (`computeScaleToFit`) — see
-  `.vibe/decisions/007-sprite-preview-raw-canvas-not-wuik-viewport.md` for
-  why this is a plain `<canvas>` rather than `web-ui-kit`'s `<wuik-viewport>`.
+  actual pixels on demand via `wasm`'s `resolveSpritePixels`, wrapped in
+  `web-ui-kit`'s `<wuik-viewport>` for zoom/pan/reset-to-fit — see
+  `.vibe/decisions/018-sprite-preview-adopts-wuik-viewport.md` (superseding
+  `.vibe/decisions/007`, from when that control wasn't yet installable).
   `animation-player.ts` renders the Animation section: plays an `Animation`'s
   `Frame`s back on a `setTimeout` chain paced by each frame's own `time`
   (in game ticks, `MS_PER_TICK` = 1/60s), decoding and drawing the current
   frame's sprite the same way the sprite browser does, reusing its
-  `computeScaleToFit`/`defaultDrawPixels`. Reaching the end of the frame
+  `computeScaleToFit`/`defaultDrawPixels` — its own preview still uses that
+  local scale-to-fit, not `<wuik-viewport>`, out of this item's scope.
+  Reaching the end of the frame
   list stops playback unless looping is on, in which case it wraps to the
   animation's `loopStart`. A frame using the `.air` "no sprite" sentinel
   (any negative group/image value) shows as an empty frame instead of

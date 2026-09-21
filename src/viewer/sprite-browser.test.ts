@@ -120,6 +120,93 @@ describe("renderSpriteBrowser", () => {
     expect(spriteButtons[1].textContent).toContain("1");
   });
 
+  it("wraps the preview canvas in a <wuik-viewport> element", () => {
+    const root = document.createElement("div");
+    renderSpriteBrowser(root, characterWithSprites(), sffBytes);
+
+    const viewport = root.querySelector(".sprite-browser__viewport");
+    expect(viewport?.tagName.toLowerCase()).toBe("wuik-viewport");
+    expect(
+      viewport?.querySelector("canvas.sprite-browser__canvas"),
+    ).not.toBeNull();
+  });
+
+  it("hides the preview canvas until a sprite is selected", () => {
+    const root = document.createElement("div");
+    renderSpriteBrowser(root, characterWithSprites(), sffBytes);
+
+    const canvas = root.querySelector<HTMLCanvasElement>(
+      ".sprite-browser__canvas",
+    );
+    expect(canvas?.hidden).toBe(true);
+  });
+
+  it("resets the viewport to fit once the selected sprite's pixels are drawn", async () => {
+    const root = document.createElement("div");
+    const resolveSpritePixels = vi.fn(
+      async (): Promise<SpritePixelResult[]> => [
+        {
+          ok: true,
+          pixels: new Uint8Array(57 * 103 * 4),
+          width: 57,
+          height: 103,
+        },
+      ],
+    );
+    renderSpriteBrowser(root, characterWithSprites(), sffBytes, {
+      resolveSpritePixels,
+      drawPixels: vi.fn(),
+    });
+
+    const viewport = root.querySelector<HTMLElement>(
+      ".sprite-browser__viewport",
+    );
+    const resetToFit = vi.fn();
+    (viewport as unknown as { resetToFit: () => void }).resetToFit = resetToFit;
+
+    root
+      .querySelectorAll<HTMLButtonElement>(".sprite-browser__group-toggle")[0]
+      .click();
+    root
+      .querySelectorAll<HTMLButtonElement>(".sprite-browser__sprite")[0]
+      .click();
+
+    await vi.waitFor(() => {
+      expect(resetToFit).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("does not reset the viewport to fit when the sprite fails to decode", async () => {
+    const root = document.createElement("div");
+    const resolveSpritePixels = vi.fn(
+      async (): Promise<SpritePixelResult[]> => [
+        { ok: false, error: "unsupported pixel format" },
+      ],
+    );
+    renderSpriteBrowser(root, characterWithSprites(), sffBytes, {
+      resolveSpritePixels,
+      drawPixels: vi.fn(),
+    });
+
+    const viewport = root.querySelector<HTMLElement>(
+      ".sprite-browser__viewport",
+    );
+    const resetToFit = vi.fn();
+    (viewport as unknown as { resetToFit: () => void }).resetToFit = resetToFit;
+
+    root
+      .querySelectorAll<HTMLButtonElement>(".sprite-browser__group-toggle")[0]
+      .click();
+    root
+      .querySelectorAll<HTMLButtonElement>(".sprite-browser__sprite")[0]
+      .click();
+
+    await vi.waitFor(() => {
+      expect(root.textContent).toContain("unsupported pixel format");
+    });
+    expect(resetToFit).not.toHaveBeenCalled();
+  });
+
   it("decodes and draws the selected sprite's pixels, marking it selected", async () => {
     const root = document.createElement("div");
     const drawPixels = vi.fn();
@@ -207,6 +294,11 @@ describe("renderSpriteBrowser", () => {
       resolveSpritePixels,
       drawPixels,
     });
+    const viewport = root.querySelector<HTMLElement>(
+      ".sprite-browser__viewport",
+    );
+    const resetToFit = vi.fn();
+    (viewport as unknown as { resetToFit: () => void }).resetToFit = resetToFit;
     root
       .querySelectorAll<HTMLButtonElement>(".sprite-browser__group-toggle")[0]
       .click();
@@ -240,6 +332,7 @@ describe("renderSpriteBrowser", () => {
 
     expect(drawPixels).toHaveBeenCalledTimes(1);
     expect(drawPixels.mock.calls[0][2]).toBe(20);
+    expect(resetToFit).toHaveBeenCalledTimes(1);
   });
 
   it("shows a loading indicator while a decode is in flight", async () => {
