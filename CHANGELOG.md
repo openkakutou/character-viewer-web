@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-09-23
+
 ### Added
 
 - A "Load character…" toolbar action lets you switch to a different character at any time during a session, from any section, without reloading the page. It opens a popup with the same folder-picker widget as the very first load; the character you already have loaded stays fully visible and usable behind it until the new one actually loads successfully. A failed or cancelled attempt leaves everything exactly as it was. A successful switch resets every section back to its own default view but keeps whichever section you were looking at selected.
@@ -112,7 +114,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.13.0...v0.14.0

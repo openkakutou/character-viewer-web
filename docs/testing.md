@@ -271,3 +271,21 @@ org-wide rationale in roadmap's
 ```sh
 npm run test:visual
 ```
+
+## Mid-session character switch (item 021)
+
+The "Load character…" popup got the same real-headless-Chromium treatment
+as the other DOM-rendering features above, on top of its own
+`workspace-shell.test.ts` cases (opening the dialog, a cancelled/failed
+load leaving the original character untouched, a successful load
+resetting every section while keeping the active sidebar tab, a stale
+async success arriving after the dialog was already closed, and a repeat
+toolbar click while it's already open). That pass, plus UI/UX and
+frontend-design expert consultation, caught two real bugs before commit:
+a stale async success could still swap the character out from under the
+user after the dialog was dismissed, and the popup had no width cap, so
+it visibly resized between the folder-picker's own states and between
+locales. Both are fixed — the first locked in by
+`workspace-shell.test.ts`'s own dedicated regression test (waiting out
+the real WASM pipeline after closing the dialog early), the second by a
+CSS `max-width` on the dialog.
