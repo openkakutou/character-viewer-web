@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // run; this test exercises `<wuik-tabs>`'s real shadow-DOM tab-button
 // behavior directly, so it needs that registration itself.
 import "@openkakutou/web-ui-kit";
+import { initAppI18n } from "../i18n/i18n.ts";
 import type { CharacterData } from "../wasm/types.ts";
 import { renderWorkspaceShell } from "./workspace-shell.ts";
 
@@ -368,5 +369,95 @@ describe("renderWorkspaceShell", () => {
 
     expect(root.querySelectorAll("wuik-app-shell")).toHaveLength(1);
     expect(root.querySelectorAll("wuik-tabs")).toHaveLength(1);
+  });
+
+  it("renders a locale switcher in the toolbar, labelled for accessibility", () => {
+    const root = document.createElement("div");
+    renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
+
+    const switcher = root.querySelector("wuik-locale-switcher");
+    expect(switcher).not.toBeNull();
+    expect(switcher?.getAttribute("label")).toBe("Language");
+    expect(root.querySelector('[slot="toolbar"]')?.contains(switcher)).toBe(
+      true,
+    );
+  });
+
+  describe("live locale switching", () => {
+    afterEach(async () => {
+      window.localStorage.clear();
+    });
+
+    it("retranslates the sidebar section labels and the locale switcher's own label when the locale changes, preserving the current selection and every section's own mounted state", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const root = document.createElement("div");
+      document.body.appendChild(root);
+      try {
+        renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
+
+        (await tabButton(root, 2)).click(); // Sprites
+        await vi.waitFor(() =>
+          expect(
+            root
+              .querySelector("wuik-tabs")
+              ?.shadowRoot?.querySelector('[aria-selected="true"]')
+              ?.textContent,
+          ).toBe("Sprites"),
+        );
+        const groupToggle = root.querySelector<HTMLButtonElement>(
+          ".sprite-browser__group-toggle",
+        );
+        groupToggle?.click();
+        expect(groupToggle?.getAttribute("aria-expanded")).toBe("true");
+
+        await instance.changeLanguage("fr");
+
+        await vi.waitFor(() => {
+          expect(
+            root.querySelector("wuik-locale-switcher")?.getAttribute("label"),
+          ).toBe("Langue");
+        });
+        const tabs = root.querySelector("wuik-tabs");
+        const tabTexts = Array.from(
+          tabs?.shadowRoot?.querySelectorAll('[role="tab"]') ?? [],
+        ).map((el) => el.textContent);
+        expect(tabTexts).toEqual([
+          "Caractéristiques",
+          "Palette",
+          "Sprites",
+          "Animation",
+          "Aperçu en jeu",
+          "Coups spéciaux",
+        ]);
+        expect(
+          Array.from(root.querySelectorAll("wuik-tab-panel")).map((panel) =>
+            panel.getAttribute("label"),
+          ),
+        ).toEqual([
+          "Caractéristiques",
+          "Palette",
+          "Sprites",
+          "Animation",
+          "Aperçu en jeu",
+          "Coups spéciaux",
+        ]);
+        // The Sprites tab is still the selected one, and its own expanded
+        // group survived the retranslation untouched.
+        expect(
+          tabs?.shadowRoot?.querySelector('[aria-selected="true"]')
+            ?.textContent,
+        ).toBe("Sprites");
+        expect(
+          root
+            .querySelector(".sprite-browser__group-toggle")
+            ?.getAttribute("aria-expanded"),
+        ).toBe("true");
+
+        await instance.changeLanguage("en");
+      } finally {
+        root.remove();
+      }
+    });
   });
 });

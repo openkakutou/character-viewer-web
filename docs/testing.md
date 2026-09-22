@@ -202,3 +202,16 @@ full relative path, with the confirm button disabled until a choice was
 made; and a folder missing its referenced `.sff` showed the exact filename
 in a clear inline error, with "Choose a different folder" clearing it and
 returning focus to the folder input. Zero console errors across all three.
+
+Localization (item 018) got its own real headless-Chromium pass: the
+launch screen's folder-input copy and `<html lang>` both resolved correctly
+from the browser's own auto-detected locale on first load with no manual
+override, a real character folder loaded through to the workspace shell,
+and switching the toolbar's language selector to French retranslated the
+sidebar section labels, the selector's own accessible label, and `<html
+lang>` immediately, with no page reload — an already-expanded sprite group
+and the currently selected sidebar section both survived the switch
+untouched, in both directions. Reloading after picking French kept French
+selected (`localStorage`), with the persisted locale already applied by
+first paint rather than flashing English first. Zero console errors
+throughout.

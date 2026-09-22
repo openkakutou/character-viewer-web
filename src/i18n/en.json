@@ -1,0 +1,114 @@
+{
+  "app": {
+    "languageLabel": "Language"
+  },
+  "shell": {
+    "section": {
+      "characteristics": "Characteristics",
+      "palette": "Palette",
+      "sprites": "Sprites",
+      "animation": "Animation",
+      "inGamePreview": "In-game preview",
+      "specialMoves": "Special Moves"
+    }
+  },
+  "fileInput": {
+    "label": "Select a character folder (containing its .def file, e.g. kfm.def)",
+    "hint": "…or drag and drop a character folder here",
+    "whichFileLegend": "Which file is the character?",
+    "loadSelectedButton": "Load selected file",
+    "resetButton": "Choose a different folder",
+    "statusReadingFolder": "Reading the selected folder…",
+    "statusReadingFile": "Reading {{fileName}}…",
+    "statusCharacterLoaded": "Character loaded: {{name}}",
+    "statusFoundCandidates": "Found {{count}} .def files in the selected folder — pick which one is the character.",
+    "errorNoFiles": "Couldn't read anything from the selected folder — your browser may not support folder selection here.",
+    "errorNoCandidate": "No .def file found in this folder — expected one like kfm.def.",
+    "errorReadFile": "Could not read {{fileName}}: {{message}}",
+    "errorBridge": "Could not load character: {{message}}",
+    "errorReferenceMissingKind": "The selected .def doesn't reference a {{kind}} file at all.",
+    "errorReferenceNotFound": "The selected .def references \"{{name}}\" for its {{kind}} file, but that file wasn't found anywhere in the selected folder.",
+    "errorReferenceAmbiguous": "The selected .def references \"{{name}}\" for its {{kind}} file, but {{count}} files in the folder share that name — could not tell which one to use."
+  },
+  "characteristicsPanel": {
+    "authorLabel": "Author: {{name}}",
+    "animationsLabel": "Animations",
+    "spritesLabel": "Sprites",
+    "statesHeading": "States ({{count}})",
+    "statesEmpty": "No Statedefs found.",
+    "filesHeading": "Files",
+    "spriteFileLabel": "Sprite file",
+    "animationFileLabel": "Animation file",
+    "soundFileLabel": "Sound file",
+    "commandFileLabel": "Command file",
+    "constantsFileLabel": "Constants file",
+    "stateFileLabel": "State file"
+  },
+  "spriteBrowser": {
+    "heading": "Sprites ({{count}})",
+    "empty": "No sprites found.",
+    "groupToggle": "Group {{index}} ({{count}})",
+    "loading": "Loading…"
+  },
+  "palettePicker": {
+    "heading": "Palette",
+    "referencedNone": "This character references no external palette files.",
+    "referencedSome": "This character references {{count}} {{noun}} for player-color variants: {{names}}. Upload one below to preview it.",
+    "paletteFileSingular": "palette file",
+    "paletteFilePlural": "palette files",
+    "uploadLabel": "Load palette override (.act)",
+    "resetButton": "Reset to character's own palette",
+    "statusUsingOwn": "Using each sprite's own palette.",
+    "statusActiveOverride": "Active palette override: {{fileName}}.",
+    "statusChecking": "Checking…",
+    "errorReadFile": "Could not read the selected file."
+  },
+  "animationPlayer": {
+    "heading": "Animation Player",
+    "empty": "No animations found.",
+    "animationSelectLabel": "Animation",
+    "animationOption": "Animation {{number}}",
+    "stepButton": "Step",
+    "stepButtonTitle": "Step to the next frame (pause playback to enable)",
+    "loopLabel": "Loop",
+    "collisionLabel": "Show collision boxes",
+    "frameCounter": "Frame {{current}} / {{total}}",
+    "play": "Play",
+    "pause": "Pause",
+    "blankFrame": "Blank frame (no sprite for this frame).",
+    "loading": "Loading…"
+  },
+  "gifExport": {
+    "exportGifButton": "Export GIF",
+    "exportStandButton": "Export Stand",
+    "standLabel": "Stand",
+    "encoding": "Encoding {{label}}…",
+    "exported": "Exported {{filename}}.",
+    "noStandAnimation": "No \"Stand\" animation (Animation 0) found for this character."
+  },
+  "animationTriggers": {
+    "heading": "In-game Preview",
+    "empty": "No animations found.",
+    "listLabel": "Animations",
+    "nowPlayingNone": "No animation selected.",
+    "nowPlayingPlaying": "Now playing: Animation {{number}}",
+    "nowPlayingStopped": "Animation {{number}} (stopped)",
+    "loading": "Loading…",
+    "blankFrame": "Blank frame (no sprite for this frame).",
+    "triggerButton": "Animation {{number}}"
+  },
+  "specialMoveList": {
+    "heading": "Special Moves",
+    "empty": "No Statedefs found.",
+    "listLabel": "States",
+    "nowPlayingNone": "No state selected.",
+    "nowPlayingPlaying": "Now playing: State {{state}} — Animation {{anim}}",
+    "nowPlayingStopped": "State {{state}} (stopped)",
+    "nowPlayingSelectedNoAnim": "State {{state}} selected — no animation",
+    "unavailable": "No animation associated with this state.",
+    "loading": "Loading…",
+    "blankFrame": "Blank frame (no sprite for this frame).",
+    "triggerButton": "State {{number}}",
+    "hintNoAnimation": "no animation"
+  }
+}

@@ -1,3 +1,4 @@
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import {
   MS_PER_TICK,
   computeNextFrameIndex,
@@ -61,6 +62,15 @@ const noopHandle: AnimationTriggersHandle = {
 };
 
 /**
+ * `renderAnimationTriggers` is only ever really invoked once per session,
+ * but tests call it repeatedly — torn down at the top of every call, before
+ * a fresh one is made, so a locale-change subscription from a previous call
+ * never accumulates or fires against content no longer on the page. See
+ * .vibe/decisions/019-i18n-integration-approach.md.
+ */
+let currentUnsubscribeLocaleChange: (() => void) | undefined;
+
+/**
  * Renders the in-game preview's animation trigger list into `root`,
  * replacing its previous content (and any in-flight playback/decode state)
  * entirely. `character === null` or `sffBytes === null` (nothing loaded
@@ -73,6 +83,8 @@ export function renderAnimationTriggers(
   sffBytes: Uint8Array | null,
   options: AnimationTriggersOptions = {},
 ): AnimationTriggersHandle {
+  currentUnsubscribeLocaleChange?.();
+  currentUnsubscribeLocaleChange = undefined;
   root.replaceChildren();
   if (character === null || sffBytes === null) return noopHandle;
   // Narrowed into a fresh binding: TS does not carry a parameter's narrowed
@@ -88,13 +100,13 @@ export function renderAnimationTriggers(
   panel.className = "animation-triggers";
 
   const heading = document.createElement("h3");
-  heading.textContent = "In-game Preview";
+  heading.textContent = t("animationTriggers.heading", "In-game Preview");
   panel.appendChild(heading);
 
   if (character.animations.length === 0) {
     const empty = document.createElement("p");
     empty.className = "animation-triggers__empty";
-    empty.textContent = "No animations found.";
+    empty.textContent = t("animationTriggers.empty", "No animations found.");
     panel.appendChild(empty);
     root.appendChild(panel);
     return noopHandle;
@@ -109,14 +121,20 @@ export function renderAnimationTriggers(
 
   const list = document.createElement("ul");
   list.className = "animation-triggers__list";
-  list.setAttribute("aria-label", "Animations");
+  list.setAttribute(
+    "aria-label",
+    t("animationTriggers.listLabel", "Animations"),
+  );
 
   const preview = document.createElement("div");
   preview.className = "animation-triggers__preview";
 
   const nowPlaying = document.createElement("p");
   nowPlaying.className = "animation-triggers__now-playing";
-  nowPlaying.textContent = "No animation selected.";
+  nowPlaying.textContent = t(
+    "animationTriggers.nowPlayingNone",
+    "No animation selected.",
+  );
 
   const stage = document.createElement("div");
   stage.className = "animation-triggers__stage";
@@ -155,9 +173,16 @@ export function renderAnimationTriggers(
     return currentAnimation.frames[currentFrameIndex] ?? null;
   }
 
+  // Whether `status` is currently showing one of this module's own
+  // translatable texts ("blank"/"loading") — retranslated on a locale
+  // change; a raw WASM/bridge decode error or the empty "shown" state is
+  // left untouched.
+  let previewStatusKind: "blank" | "loading" | "error" | "shown" = "shown";
+
   function showDecodeError(token: number, message: string): void {
     if (token !== selectionToken) return; // superseded by a later trigger
     canvas.hidden = true;
+    previewStatusKind = "error";
     status.textContent = message;
     status.className =
       "animation-triggers__status animation-triggers__status--error";
@@ -170,14 +195,19 @@ export function renderAnimationTriggers(
 
     if (isBlankFrame(frame)) {
       canvas.hidden = true;
-      status.textContent = "Blank frame (no sprite for this frame).";
+      previewStatusKind = "blank";
+      status.textContent = t(
+        "animationTriggers.blankFrame",
+        "Blank frame (no sprite for this frame).",
+      );
       status.className =
         "animation-triggers__status animation-triggers__status--blank";
       return;
     }
 
     canvas.hidden = true;
-    status.textContent = "Loading…";
+    previewStatusKind = "loading";
+    status.textContent = t("animationTriggers.loading", "Loading…");
     status.className = "animation-triggers__status";
 
     resolvePixels(
@@ -199,6 +229,7 @@ export function renderAnimationTriggers(
         canvas.style.height = `${result.height * scale}px`;
         drawPixels(canvas, result.pixels, result.width, result.height);
         canvas.hidden = false;
+        previewStatusKind = "shown";
         status.textContent = "";
         status.className = "animation-triggers__status";
       })
@@ -236,6 +267,30 @@ export function renderAnimationTriggers(
     }, ticks * MS_PER_TICK);
   }
 
+  /** Recomputes `nowPlaying`'s text from the current `playing`/`currentAnimation`
+   * state — used both after a state transition and to retranslate it in
+   * place on a locale change. */
+  function updateNowPlaying(): void {
+    if (playing && currentAnimation) {
+      nowPlaying.textContent = t(
+        "animationTriggers.nowPlayingPlaying",
+        "Now playing: Animation {{number}}",
+        { number: String(currentAnimation.number) },
+      );
+    } else if (currentAnimation) {
+      nowPlaying.textContent = t(
+        "animationTriggers.nowPlayingStopped",
+        "Animation {{number}} (stopped)",
+        { number: String(currentAnimation.number) },
+      );
+    } else {
+      nowPlaying.textContent = t(
+        "animationTriggers.nowPlayingNone",
+        "No animation selected.",
+      );
+    }
+  }
+
   /** Stops playback, freezing the current frame, and clears the active button's pressed state. */
   function stopPlayback(): void {
     clearTimer();
@@ -243,9 +298,7 @@ export function renderAnimationTriggers(
     if (activeButton) {
       activeButton.setAttribute("aria-pressed", "false");
     }
-    nowPlaying.textContent = currentAnimation
-      ? `Animation ${currentAnimation.number} (stopped)`
-      : "No animation selected.";
+    updateNowPlaying();
   }
 
   function triggerAnimation(
@@ -269,10 +322,13 @@ export function renderAnimationTriggers(
     playing = true;
     activeButton = button;
     button.setAttribute("aria-pressed", "true");
-    nowPlaying.textContent = `Now playing: Animation ${animation.number}`;
+    updateNowPlaying();
     showFrame();
     scheduleNextTick();
   }
+
+  const triggerButtons: Array<{ button: HTMLButtonElement; number: number }> =
+    [];
 
   for (const animation of sortedAnimations) {
     const item = document.createElement("li");
@@ -280,12 +336,49 @@ export function renderAnimationTriggers(
     const button = document.createElement("button");
     button.type = "button";
     button.className = "animation-triggers__trigger";
-    button.textContent = `Animation ${animation.number}`;
+    button.textContent = t(
+      "animationTriggers.triggerButton",
+      "Animation {{number}}",
+      {
+        number: String(animation.number),
+      },
+    );
     button.setAttribute("aria-pressed", "false");
     button.addEventListener("click", () => triggerAnimation(animation, button));
+    triggerButtons.push({ button, number: animation.number });
     item.appendChild(button);
     list.appendChild(item);
   }
+
+  // Live locale switching (backlog item 018): every static label, each
+  // trigger button's text, the "now playing" line (recomputed from its own
+  // already-tracked state), and the preview status (only while it's showing
+  // this module's own translatable "blank"/"loading" text) retranslate in
+  // place — the active animation/button selection and an in-flight decode
+  // are untouched.
+  currentUnsubscribeLocaleChange = onLocaleChange(() => {
+    heading.textContent = t("animationTriggers.heading", "In-game Preview");
+    list.setAttribute(
+      "aria-label",
+      t("animationTriggers.listLabel", "Animations"),
+    );
+    for (const entry of triggerButtons) {
+      entry.button.textContent = t(
+        "animationTriggers.triggerButton",
+        "Animation {{number}}",
+        { number: String(entry.number) },
+      );
+    }
+    updateNowPlaying();
+    if (previewStatusKind === "blank") {
+      status.textContent = t(
+        "animationTriggers.blankFrame",
+        "Blank frame (no sprite for this frame).",
+      );
+    } else if (previewStatusKind === "loading") {
+      status.textContent = t("animationTriggers.loading", "Loading…");
+    }
+  });
 
   return {
     pause: stopPlayback,

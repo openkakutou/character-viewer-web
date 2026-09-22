@@ -8,7 +8,9 @@
 happens client-side, in the browser, through a WebAssembly module built from
 the sibling [`character`](https://github.com/openkakutou/character) Go
 library — this repo never reimplements `.def`/`.air`/`.sff`/`.cns` parsing
-itself.
+itself. The UI itself is localized (English/French) through
+`@openkakutou/web-ui-kit`'s shared i18next integration layer, switchable
+live from the workspace shell's toolbar.
 
 ```mermaid
 flowchart LR
@@ -24,6 +26,9 @@ flowchart LR
     gamemode --> viewer
     wasm -.->|fetch + WebAssembly.instantiate| module["character.wasm\n(public/wasm/, gitignored)"]
     scripts["scripts\n(scripts/download-wasm.mjs)"] -.->|fetches at dev-setup time| module
+    app --> i18n["i18n\n(src/i18n/)"]
+    shell --> i18n
+    i18n -.->|shared integration layer| wuik["@openkakutou/web-ui-kit"]
 
     style module stroke-dasharray: 5 5
 ```
@@ -186,6 +191,19 @@ flowchart LR
   of the shipped app bundle. Fetches a pinned `character` release's
   `character.wasm` + `wasm_exec.js` into `public/wasm/` so contributors
   don't need a Go toolchain or a sibling `character` checkout.
+- **`i18n`** (`src/i18n/`) — this app's own localization setup (item 018):
+  `i18n.ts` wires `@openkakutou/web-ui-kit`'s shared i18next integration
+  layer under this app's own namespace/`localStorage` key and exposes a thin
+  `t(key, defaultValue, vars?)` wrapper that falls back to the interpolated
+  English default whenever i18n hasn't initialized yet in the page (e.g. the
+  test suite, which never bootstraps it). `en.json`/`fr.json` are this app's
+  own message catalogs. `app` calls `initAppI18n()` once at real bootstrap,
+  awaited before the first render; `shell`'s toolbar hosts the
+  `<wuik-locale-switcher>` control, and every screen that owns live/async
+  state (the file input, sprite browser, palette picker, animation player,
+  GIF export controls, in-game preview, Special Moves) retranslates its own
+  already-shown text in place on a locale change rather than re-rendering —
+  see `.vibe/decisions/019-i18n-integration-approach.md`.
 
 ## WebAssembly dependency
 

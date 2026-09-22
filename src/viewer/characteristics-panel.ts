@@ -3,6 +3,7 @@
 // bridge → typed data → UI) end to end. Appears inline, automatically,
 // right after a character finishes loading — no tab/sidebar navigation
 // yet, see .vibe/decisions/005-characteristics-panel-inline-no-tab-navigation-yet.md.
+import { t } from "../i18n/i18n.ts";
 import type { CharacterData } from "../wasm/types.ts";
 
 /**
@@ -29,7 +30,13 @@ export function renderCharacteristicsPanel(
   const author = trimmedAuthor === "" ? null : document.createElement("p");
   if (author !== null) {
     author.className = "characteristics-panel__author";
-    author.textContent = `Author: ${trimmedAuthor}`;
+    author.textContent = t(
+      "characteristicsPanel.authorLabel",
+      "Author: {{name}}",
+      {
+        name: trimmedAuthor,
+      },
+    );
   }
 
   const totalSpriteCount = character.sprites.reduce(
@@ -40,8 +47,16 @@ export function renderCharacteristicsPanel(
   const stats = document.createElement("dl");
   stats.className = "characteristics-panel__stats";
   stats.append(
-    buildStat("animations", "Animations", character.animations.length),
-    buildStat("sprites", "Sprites", totalSpriteCount),
+    buildStat(
+      "animations",
+      t("characteristicsPanel.animationsLabel", "Animations"),
+      character.animations.length,
+    ),
+    buildStat(
+      "sprites",
+      t("characteristicsPanel.spritesLabel", "Sprites"),
+      totalSpriteCount,
+    ),
   );
 
   const statesSection = document.createElement("section");
@@ -52,13 +67,22 @@ export function renderCharacteristicsPanel(
     .sort((a, b) => a - b);
 
   const heading = document.createElement("h3");
-  heading.textContent = `States (${sortedStateNumbers.length})`;
+  heading.textContent = t(
+    "characteristicsPanel.statesHeading",
+    "States ({{count}})",
+    {
+      count: String(sortedStateNumbers.length),
+    },
+  );
   statesSection.appendChild(heading);
 
   if (sortedStateNumbers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "characteristics-panel__states-empty";
-    empty.textContent = "No Statedefs found.";
+    empty.textContent = t(
+      "characteristicsPanel.statesEmpty",
+      "No Statedefs found.",
+    );
     statesSection.appendChild(empty);
   } else {
     const list = document.createElement("ul");
@@ -91,12 +115,30 @@ export function renderCharacteristicsPanel(
  */
 function buildFilesSection(character: CharacterData): HTMLElement | null {
   const entries: Array<{ label: string; value: string }> = [
-    { label: "Sprite file", value: character.spriteFile },
-    { label: "Animation file", value: character.animationFile },
-    { label: "Sound file", value: character.soundFile },
-    { label: "Command file", value: character.commandFile },
-    { label: "Constants file", value: character.constantsFile },
-    ...character.stateFiles.map((value) => ({ label: "State file", value })),
+    {
+      label: t("characteristicsPanel.spriteFileLabel", "Sprite file"),
+      value: character.spriteFile,
+    },
+    {
+      label: t("characteristicsPanel.animationFileLabel", "Animation file"),
+      value: character.animationFile,
+    },
+    {
+      label: t("characteristicsPanel.soundFileLabel", "Sound file"),
+      value: character.soundFile,
+    },
+    {
+      label: t("characteristicsPanel.commandFileLabel", "Command file"),
+      value: character.commandFile,
+    },
+    {
+      label: t("characteristicsPanel.constantsFileLabel", "Constants file"),
+      value: character.constantsFile,
+    },
+    ...character.stateFiles.map((value) => ({
+      label: t("characteristicsPanel.stateFileLabel", "State file"),
+      value,
+    })),
   ]
     .map((entry) => ({ label: entry.label, value: basename(entry.value) }))
     .filter((entry) => entry.value !== "");
@@ -107,7 +149,7 @@ function buildFilesSection(character: CharacterData): HTMLElement | null {
   section.className = "characteristics-panel__files";
 
   const heading = document.createElement("h3");
-  heading.textContent = "Files";
+  heading.textContent = t("characteristicsPanel.filesHeading", "Files");
   section.appendChild(heading);
 
   const list = document.createElement("dl");

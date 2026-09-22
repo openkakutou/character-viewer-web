@@ -14,6 +14,7 @@
 // .vibe/decisions/015-gif-export-frame-compositing.md — before being
 // quantized and encoded.
 import { GIFEncoder, applyPalette, quantize } from "gifenc";
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import {
   MS_PER_TICK,
   effectiveTickDuration,
@@ -338,6 +339,16 @@ export interface GifExportControlsOptions {
 }
 
 /**
+ * `renderGifExportControls` is only ever really invoked once per
+ * `animation-player.ts` render, but tests call it repeatedly — torn down at
+ * the top of every call, before a fresh one is made, so a locale-change
+ * subscription from a previous call never accumulates or fires against
+ * content no longer on the page. See
+ * .vibe/decisions/019-i18n-integration-approach.md.
+ */
+let currentUnsubscribeLocaleChange: (() => void) | undefined;
+
+/**
  * Appends the "Export GIF" / "Export Stand" controls into `container` —
  * unlike this app's `renderXxx(root, ...)` screens, this does not own or
  * clear `container`: it is a sub-widget mounted alongside
@@ -354,18 +365,23 @@ export function renderGifExportControls(
   getPaletteOverride: () => Uint8Array | null,
   options: GifExportControlsOptions = {},
 ): void {
+  currentUnsubscribeLocaleChange?.();
+  currentUnsubscribeLocaleChange = undefined;
   const encode = options.encodeAnimationGif ?? encodeAnimationGif;
   const triggerDownload = options.triggerDownload ?? defaultTriggerDownload;
 
   const exportButton = document.createElement("button");
   exportButton.type = "button";
   exportButton.className = "animation-player__export-gif";
-  exportButton.textContent = "Export GIF";
+  exportButton.textContent = t("gifExport.exportGifButton", "Export GIF");
 
   const exportStandButton = document.createElement("button");
   exportStandButton.type = "button";
   exportStandButton.className = "animation-player__export-stand";
-  exportStandButton.textContent = "Export Stand";
+  exportStandButton.textContent = t(
+    "gifExport.exportStandButton",
+    "Export Stand",
+  );
 
   const status = document.createElement("p");
   status.className = "animation-player__export-status";
@@ -374,10 +390,56 @@ export function renderGifExportControls(
 
   container.append(exportButton, exportStandButton, status);
 
+  // The status line's current content, as data rather than a pre-formatted
+  // string — retranslated in place on a locale change; a raw WASM/bridge
+  // encode error is left untouched. `label`/`filename` are the same values
+  // already threaded through `performExport`/`buildGifFilename` below, never
+  // recomputed independently.
+  type ExportStatus =
+    | { kind: "idle" }
+    | { kind: "encoding"; label: string }
+    | { kind: "exported"; filename: string }
+    | { kind: "no-stand" }
+    | { kind: "error"; message: string };
+  let exportStatus: ExportStatus = { kind: "idle" };
+
+  function renderStatus(): void {
+    switch (exportStatus.kind) {
+      case "idle":
+        status.textContent = "";
+        status.className = "animation-player__export-status";
+        return;
+      case "encoding":
+        status.textContent = t("gifExport.encoding", "Encoding {{label}}…", {
+          label: exportStatus.label,
+        });
+        status.className = "animation-player__export-status";
+        return;
+      case "exported":
+        status.textContent = t("gifExport.exported", "Exported {{filename}}.", {
+          filename: exportStatus.filename,
+        });
+        status.className = "animation-player__export-status";
+        return;
+      case "no-stand":
+        status.textContent = t(
+          "gifExport.noStandAnimation",
+          'No "Stand" animation (Animation 0) found for this character.',
+        );
+        status.className =
+          "animation-player__export-status animation-player__export-status--error";
+        return;
+      case "error":
+        status.textContent = exportStatus.message;
+        status.className =
+          "animation-player__export-status animation-player__export-status--error";
+        return;
+    }
+  }
+
   function showError(message: string): void {
-    status.textContent = message;
-    status.className =
-      "animation-player__export-status animation-player__export-status--error";
+    exportStatus = { kind: "error", message };
+    renderStatus();
   }
 
   async function performExport(
@@ -387,8 +449,8 @@ export function renderGifExportControls(
   ): Promise<void> {
     exportButton.disabled = true;
     exportStandButton.disabled = true;
-    status.textContent = `Encoding ${statusLabel}…`;
-    status.className = "animation-player__export-status";
+    exportStatus = { kind: "encoding", label: statusLabel };
+    renderStatus();
 
     // Yield once so the "Encoding…" status actually paints before the
     // encode's own (potentially blocking) work starts — see the frontend
@@ -412,8 +474,8 @@ export function renderGifExportControls(
       }
       const filename = buildGifFilename(character.name, filenameLabel);
       triggerDownload(result.bytes, filename);
-      status.textContent = `Exported ${filename}.`;
-      status.className = "animation-player__export-status";
+      exportStatus = { kind: "exported", filename };
+      renderStatus();
     } catch (err: unknown) {
       // A rejected promise (e.g. the WASM bridge itself failing to load)
       // degrades to the same clear error status as an ok:false result,
@@ -430,16 +492,33 @@ export function renderGifExportControls(
     void performExport(
       animation,
       `anim${animation.number}`,
-      `Animation ${animation.number}`,
+      t("animationPlayer.animationOption", "Animation {{number}}", {
+        number: String(animation.number),
+      }),
     );
   });
 
   exportStandButton.addEventListener("click", () => {
     const animation = resolveStandAnimation(character);
     if (animation === null) {
-      showError('No "Stand" animation (Animation 0) found for this character.');
+      exportStatus = { kind: "no-stand" };
+      renderStatus();
       return;
     }
-    void performExport(animation, "stand", "Stand");
+    void performExport(animation, "stand", t("gifExport.standLabel", "Stand"));
+  });
+
+  // Live locale switching (backlog item 018): the two static button labels
+  // always retranslate; the status line is recomputed from `exportStatus`
+  // (never a pre-formatted string), so an in-progress "Encoding…"/already
+  // "Exported" message retranslates too — a raw WASM/bridge encode error is
+  // left untouched.
+  currentUnsubscribeLocaleChange = onLocaleChange(() => {
+    exportButton.textContent = t("gifExport.exportGifButton", "Export GIF");
+    exportStandButton.textContent = t(
+      "gifExport.exportStandButton",
+      "Export Stand",
+    );
+    renderStatus();
   });
 }

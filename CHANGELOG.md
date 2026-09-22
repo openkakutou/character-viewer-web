@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The app is now available in French in addition to English, switchable live from a language selector in the toolbar (no page reload needed) — your choice is remembered the next time you visit. The language you get on first visit matches your browser's own language setting.
+
 ## [0.14.0] - 2026-09-22
 
 ### Added

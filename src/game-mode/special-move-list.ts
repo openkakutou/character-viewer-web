@@ -10,6 +10,7 @@
 // see .vibe/decisions/013-special-moves-own-section-not-merged-into-in-game-preview.md
 // for why this is its own section with its own stage instead of a second
 // list feeding item 008's own state machine.
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import {
   MS_PER_TICK,
   computeNextFrameIndex,
@@ -67,6 +68,15 @@ const noopHandle: SpecialMoveListHandle = {
 };
 
 /**
+ * `renderSpecialMoveList` is only ever really invoked once per session, but
+ * tests call it repeatedly — torn down at the top of every call, before a
+ * fresh one is made, so a locale-change subscription from a previous call
+ * never accumulates or fires against content no longer on the page. See
+ * .vibe/decisions/019-i18n-integration-approach.md.
+ */
+let currentUnsubscribeLocaleChange: (() => void) | undefined;
+
+/**
  * Resolves the Animation a Statedef's "anim" header field points at, or
  * `null` when there is no clearly associated animation:
  * - "anim" held an unevaluated MUGEN/Ikemen trigger expression (recorded in
@@ -97,6 +107,8 @@ export function renderSpecialMoveList(
   sffBytes: Uint8Array | null,
   options: SpecialMoveListOptions = {},
 ): SpecialMoveListHandle {
+  currentUnsubscribeLocaleChange?.();
+  currentUnsubscribeLocaleChange = undefined;
   root.replaceChildren();
   if (character === null || sffBytes === null) return noopHandle;
   // Narrowed into a fresh binding: TS does not carry a parameter's narrowed
@@ -112,13 +124,13 @@ export function renderSpecialMoveList(
   panel.className = "special-move-list";
 
   const heading = document.createElement("h3");
-  heading.textContent = "Special Moves";
+  heading.textContent = t("specialMoveList.heading", "Special Moves");
   panel.appendChild(heading);
 
   if (character.stateDefs.length === 0) {
     const empty = document.createElement("p");
     empty.className = "special-move-list__empty";
-    empty.textContent = "No Statedefs found.";
+    empty.textContent = t("specialMoveList.empty", "No Statedefs found.");
     panel.appendChild(empty);
     root.appendChild(panel);
     return noopHandle;
@@ -133,14 +145,17 @@ export function renderSpecialMoveList(
 
   const list = document.createElement("ul");
   list.className = "special-move-list__list";
-  list.setAttribute("aria-label", "States");
+  list.setAttribute("aria-label", t("specialMoveList.listLabel", "States"));
 
   const preview = document.createElement("div");
   preview.className = "special-move-list__preview";
 
   const nowPlaying = document.createElement("p");
   nowPlaying.className = "special-move-list__now-playing";
-  nowPlaying.textContent = "No state selected.";
+  nowPlaying.textContent = t(
+    "specialMoveList.nowPlayingNone",
+    "No state selected.",
+  );
 
   const stage = document.createElement("div");
   stage.className = "special-move-list__stage";
@@ -180,9 +195,18 @@ export function renderSpecialMoveList(
     return currentAnimation.frames[currentFrameIndex] ?? null;
   }
 
+  // Whether `status` is currently showing one of this module's own
+  // translatable texts ("blank"/"loading") — retranslated on a locale
+  // change; a raw WASM/bridge decode error or the empty "shown" state is
+  // left untouched. `showUnavailable`'s own status is tracked separately
+  // (`nowPlayingState`'s "selected-no-anim" kind drives it instead, see
+  // below), since it skips this decode pipeline entirely.
+  let previewStatusKind: "blank" | "loading" | "error" | "shown" = "shown";
+
   function showDecodeError(token: number, message: string): void {
     if (token !== selectionToken) return; // superseded by a later trigger
     canvas.hidden = true;
+    previewStatusKind = "error";
     status.textContent = message;
     status.className =
       "special-move-list__status special-move-list__status--error";
@@ -195,14 +219,19 @@ export function renderSpecialMoveList(
 
     if (isBlankFrame(frame)) {
       canvas.hidden = true;
-      status.textContent = "Blank frame (no sprite for this frame).";
+      previewStatusKind = "blank";
+      status.textContent = t(
+        "specialMoveList.blankFrame",
+        "Blank frame (no sprite for this frame).",
+      );
       status.className =
         "special-move-list__status special-move-list__status--blank";
       return;
     }
 
     canvas.hidden = true;
-    status.textContent = "Loading…";
+    previewStatusKind = "loading";
+    status.textContent = t("specialMoveList.loading", "Loading…");
     status.className = "special-move-list__status";
 
     resolvePixels(
@@ -224,6 +253,7 @@ export function renderSpecialMoveList(
         canvas.style.height = `${result.height * scale}px`;
         drawPixels(canvas, result.pixels, result.width, result.height);
         canvas.hidden = false;
+        previewStatusKind = "shown";
         status.textContent = "";
         status.className = "special-move-list__status";
       })
@@ -261,10 +291,57 @@ export function renderSpecialMoveList(
     }, ticks * MS_PER_TICK);
   }
 
+  /** `nowPlaying`'s current content, as data rather than a pre-formatted
+   * string — retranslated in place on a locale change by re-running
+   * `updateNowPlaying` from whichever state is currently active. */
+  type NowPlayingState =
+    | { kind: "none" }
+    | { kind: "playing"; state: number; animation: number }
+    | { kind: "stopped"; state: number }
+    | { kind: "selected-no-animation"; state: number };
+  let nowPlayingState: NowPlayingState = { kind: "none" };
+
+  function updateNowPlaying(): void {
+    switch (nowPlayingState.kind) {
+      case "none":
+        nowPlaying.textContent = t(
+          "specialMoveList.nowPlayingNone",
+          "No state selected.",
+        );
+        return;
+      case "playing":
+        nowPlaying.textContent = t(
+          "specialMoveList.nowPlayingPlaying",
+          "Now playing: State {{state}} — Animation {{anim}}",
+          {
+            state: String(nowPlayingState.state),
+            anim: String(nowPlayingState.animation),
+          },
+        );
+        return;
+      case "stopped":
+        nowPlaying.textContent = t(
+          "specialMoveList.nowPlayingStopped",
+          "State {{state}} (stopped)",
+          { state: String(nowPlayingState.state) },
+        );
+        return;
+      case "selected-no-animation":
+        nowPlaying.textContent = t(
+          "specialMoveList.nowPlayingSelectedNoAnim",
+          "State {{state}} selected — no animation",
+          { state: String(nowPlayingState.state) },
+        );
+    }
+  }
+
   /** Shows the distinct "no animation" status, skipping the decode pipeline entirely. */
   function showUnavailable(): void {
     canvas.hidden = true;
-    status.textContent = "No animation associated with this state.";
+    status.textContent = t(
+      "specialMoveList.unavailable",
+      "No animation associated with this state.",
+    );
     status.className =
       "special-move-list__status special-move-list__status--unavailable";
   }
@@ -276,10 +353,11 @@ export function renderSpecialMoveList(
     if (activeButton) {
       activeButton.setAttribute("aria-pressed", "false");
     }
-    nowPlaying.textContent =
+    nowPlayingState =
       currentStateNumber !== null
-        ? `State ${currentStateNumber} (stopped)`
-        : "No state selected.";
+        ? { kind: "stopped", state: currentStateNumber }
+        : { kind: "none" };
+    updateNowPlaying();
     activeButton = null;
     currentStateNumber = null;
   }
@@ -292,9 +370,11 @@ export function renderSpecialMoveList(
     activeButton = null;
     currentStateNumber = null;
     canvas.hidden = true;
+    previewStatusKind = "shown";
     status.textContent = "";
     status.className = "special-move-list__status";
-    nowPlaying.textContent = "No state selected.";
+    nowPlayingState = { kind: "none" };
+    updateNowPlaying();
   }
 
   function triggerState(
@@ -325,7 +405,11 @@ export function renderSpecialMoveList(
     if (resolvedAnimation === null) {
       playing = false;
       currentAnimation = null;
-      nowPlaying.textContent = `State ${stateDef.number} selected — no animation`;
+      nowPlayingState = {
+        kind: "selected-no-animation",
+        state: stateDef.number,
+      };
+      updateNowPlaying();
       showUnavailable();
       return;
     }
@@ -333,10 +417,22 @@ export function renderSpecialMoveList(
     currentAnimation = resolvedAnimation;
     currentFrameIndex = 0;
     playing = true;
-    nowPlaying.textContent = `Now playing: State ${stateDef.number} — Animation ${resolvedAnimation.number}`;
+    nowPlayingState = {
+      kind: "playing",
+      state: stateDef.number,
+      animation: resolvedAnimation.number,
+    };
+    updateNowPlaying();
     showFrame();
     scheduleNextTick();
   }
+
+  const triggerButtons: Array<{
+    button: HTMLButtonElement;
+    label: HTMLElement;
+    hint: HTMLElement | null;
+    number: number;
+  }> = [];
 
   for (const stateDefEntry of sortedStateDefs) {
     const resolvedAnimation = resolveStateAnimation(
@@ -353,15 +449,19 @@ export function renderSpecialMoveList(
 
     const label = document.createElement("span");
     label.className = "special-move-list__label";
-    label.textContent = `State ${stateDefEntry.number}`;
+    label.textContent = t("specialMoveList.triggerButton", "State {{number}}", {
+      number: String(stateDefEntry.number),
+    });
     button.appendChild(label);
 
+    let hint: HTMLElement | null = null;
     if (resolvedAnimation === null) {
-      const hint = document.createElement("span");
+      hint = document.createElement("span");
       hint.className = "special-move-list__hint";
-      hint.textContent = "no animation";
+      hint.textContent = t("specialMoveList.hintNoAnimation", "no animation");
       button.appendChild(hint);
     }
+    triggerButtons.push({ button, label, hint, number: stateDefEntry.number });
 
     button.addEventListener("click", () =>
       triggerState(stateDefEntry, resolvedAnimation, button),
@@ -369,6 +469,44 @@ export function renderSpecialMoveList(
     item.appendChild(button);
     list.appendChild(item);
   }
+
+  // Live locale switching (backlog item 018): every static label, each
+  // trigger button's label/hint, the "now playing" line (recomputed from
+  // its own already-tracked state), and the preview status (only while
+  // it's showing this module's own translatable "blank"/"loading" text)
+  // retranslate in place — the active state/button selection and an
+  // in-flight decode are untouched. The distinct "no animation associated"
+  // status (`showUnavailable`) is re-shown directly when that's the
+  // currently selected row's own state, since it isn't tracked by
+  // `previewStatusKind` (it skips the decode pipeline entirely).
+  currentUnsubscribeLocaleChange = onLocaleChange(() => {
+    heading.textContent = t("specialMoveList.heading", "Special Moves");
+    list.setAttribute("aria-label", t("specialMoveList.listLabel", "States"));
+    for (const entry of triggerButtons) {
+      entry.label.textContent = t(
+        "specialMoveList.triggerButton",
+        "State {{number}}",
+        { number: String(entry.number) },
+      );
+      if (entry.hint) {
+        entry.hint.textContent = t(
+          "specialMoveList.hintNoAnimation",
+          "no animation",
+        );
+      }
+    }
+    updateNowPlaying();
+    if (nowPlayingState.kind === "selected-no-animation") {
+      showUnavailable();
+    } else if (previewStatusKind === "blank") {
+      status.textContent = t(
+        "specialMoveList.blankFrame",
+        "Blank frame (no sprite for this frame).",
+      );
+    } else if (previewStatusKind === "loading") {
+      status.textContent = t("specialMoveList.loading", "Loading…");
+    }
+  });
 
   return {
     pause: () => {

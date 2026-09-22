@@ -11,6 +11,7 @@
 // scale-to-fit, `computeScaleToFit`, stays exported here for the animation
 // player (animation-player.ts, item 007), which still uses it for its own
 // preview and is out of item 016's scope.
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import {
   type SpritePixelResult,
   type WasmBridgeOptions,
@@ -101,6 +102,15 @@ export interface SpriteBrowserHandle {
 const noopHandle: SpriteBrowserHandle = { setPaletteOverride() {} };
 
 /**
+ * `renderSpriteBrowser` is only ever really invoked once per session, but
+ * tests call it repeatedly — torn down at the top of every call, before a
+ * fresh one is made, so a locale-change subscription from a previous call
+ * never accumulates or fires against content no longer on the page. See
+ * .vibe/decisions/019-i18n-integration-approach.md.
+ */
+let currentUnsubscribeLocaleChange: (() => void) | undefined;
+
+/**
  * Renders the sprite browser into `root`, replacing its previous content
  * (and any in-flight selection state) entirely. `character === null` or
  * `sffBytes === null` (nothing loaded yet) renders nothing, mirroring the
@@ -112,6 +122,8 @@ export function renderSpriteBrowser(
   sffBytes: Uint8Array | null,
   options: SpriteBrowserOptions = {},
 ): SpriteBrowserHandle {
+  currentUnsubscribeLocaleChange?.();
+  currentUnsubscribeLocaleChange = undefined;
   root.replaceChildren();
   if (character === null || sffBytes === null) return noopHandle;
   // Narrowed into a fresh binding: TS does not carry a parameter's narrowed
@@ -132,13 +144,15 @@ export function renderSpriteBrowser(
   panel.className = "sprite-browser";
 
   const heading = document.createElement("h3");
-  heading.textContent = `Sprites (${totalSpriteCount})`;
+  heading.textContent = t("spriteBrowser.heading", "Sprites ({{count}})", {
+    count: String(totalSpriteCount),
+  });
   panel.appendChild(heading);
 
   if (totalSpriteCount === 0) {
     const empty = document.createElement("p");
     empty.className = "sprite-browser__empty";
-    empty.textContent = "No sprites found.";
+    empty.textContent = t("spriteBrowser.empty", "No sprites found.");
     panel.appendChild(empty);
     root.appendChild(panel);
     return noopHandle;
@@ -176,6 +190,10 @@ export function renderSpriteBrowser(
   // without losing which group is expanded or which sprite is selected.
   let activeOverride: Uint8Array | null = null;
   let lastSelected: { sprite: Sprite; button: HTMLButtonElement } | null = null;
+  // Whether `status` is currently showing this module's own translatable
+  // "Loading…" text — retranslated on a locale change; an error (raw, from
+  // the WASM bridge) or the empty "shown" state is left untouched.
+  let previewStatusKind: "idle" | "loading" | "error" | "shown" = "idle";
 
   function selectSprite(sprite: Sprite, button: HTMLButtonElement): void {
     selectedButton?.removeAttribute("aria-current");
@@ -185,7 +203,8 @@ export function renderSpriteBrowser(
 
     const token = ++selectionToken;
     canvas.hidden = true;
-    status.textContent = "Loading…";
+    previewStatusKind = "loading";
+    status.textContent = t("spriteBrowser.loading", "Loading…");
     status.classList.remove("sprite-browser__preview-status--error");
 
     resolvePixels(
@@ -198,6 +217,7 @@ export function renderSpriteBrowser(
 
       if (!result.ok) {
         canvas.hidden = true;
+        previewStatusKind = "error";
         status.textContent = result.error;
         status.classList.add("sprite-browser__preview-status--error");
         return;
@@ -205,10 +225,17 @@ export function renderSpriteBrowser(
 
       drawPixels(canvas, result.pixels, result.width, result.height);
       canvas.hidden = false;
+      previewStatusKind = "shown";
       status.textContent = "";
       resetViewportToFit(viewport);
     });
   }
+
+  const groupToggles: Array<{
+    toggle: HTMLButtonElement;
+    index: number;
+    count: number;
+  }> = [];
 
   for (const group of character.sprites) {
     const groupEl = document.createElement("div");
@@ -218,7 +245,16 @@ export function renderSpriteBrowser(
     toggle.type = "button";
     toggle.className = "sprite-browser__group-toggle";
     toggle.setAttribute("aria-expanded", "false");
-    toggle.textContent = `Group ${group.index} (${group.sprites.length})`;
+    toggle.textContent = t(
+      "spriteBrowser.groupToggle",
+      "Group {{index}} ({{count}})",
+      { index: String(group.index), count: String(group.sprites.length) },
+    );
+    groupToggles.push({
+      toggle,
+      index: group.index,
+      count: group.sprites.length,
+    });
 
     const spriteList = document.createElement("div");
     spriteList.className = "sprite-browser__sprites";
@@ -243,6 +279,26 @@ export function renderSpriteBrowser(
   body.append(list, preview);
   panel.appendChild(body);
   root.appendChild(panel);
+
+  // Live locale switching (backlog item 018): the heading, every group
+  // toggle's label, and the preview status (only while it's showing this
+  // module's own translatable "Loading…" text) retranslate in place —
+  // expanded/selected state and an in-flight decode are untouched.
+  currentUnsubscribeLocaleChange = onLocaleChange(() => {
+    heading.textContent = t("spriteBrowser.heading", "Sprites ({{count}})", {
+      count: String(totalSpriteCount),
+    });
+    for (const entry of groupToggles) {
+      entry.toggle.textContent = t(
+        "spriteBrowser.groupToggle",
+        "Group {{index}} ({{count}})",
+        { index: String(entry.index), count: String(entry.count) },
+      );
+    }
+    if (previewStatusKind === "loading") {
+      status.textContent = t("spriteBrowser.loading", "Loading…");
+    }
+  });
 
   return {
     setPaletteOverride(overridePaletteBytes) {

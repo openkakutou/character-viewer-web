@@ -10,6 +10,7 @@ import {
   type GifExportControlsOptions,
   renderGifExportControls,
 } from "../export/gif-export.ts";
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import {
   type SpritePixelResult,
   type WasmBridgeOptions,
@@ -195,6 +196,15 @@ const noopHandle: AnimationPlayerHandle = {
 };
 
 /**
+ * `renderAnimationPlayer` is only ever really invoked once per session, but
+ * tests call it repeatedly — torn down at the top of every call, before a
+ * fresh one is made, so a locale-change subscription from a previous call
+ * never accumulates or fires against content no longer on the page. See
+ * .vibe/decisions/019-i18n-integration-approach.md.
+ */
+let currentUnsubscribeLocaleChange: (() => void) | undefined;
+
+/**
  * Renders the animation player into `root`, replacing its previous content
  * (and any in-flight playback/decode state) entirely. `character === null`
  * or `sffBytes === null` (nothing loaded yet) renders nothing, mirroring the
@@ -206,6 +216,8 @@ export function renderAnimationPlayer(
   sffBytes: Uint8Array | null,
   options: AnimationPlayerOptions = {},
 ): AnimationPlayerHandle {
+  currentUnsubscribeLocaleChange?.();
+  currentUnsubscribeLocaleChange = undefined;
   root.replaceChildren();
   if (character === null || sffBytes === null) return noopHandle;
   // Narrowed into a fresh binding: TS does not carry a parameter's narrowed
@@ -229,13 +241,13 @@ export function renderAnimationPlayer(
   panel.className = "animation-player";
 
   const heading = document.createElement("h3");
-  heading.textContent = "Animation Player";
+  heading.textContent = t("animationPlayer.heading", "Animation Player");
   panel.appendChild(heading);
 
   if (character.animations.length === 0) {
     const empty = document.createElement("p");
     empty.className = "animation-player__empty";
-    empty.textContent = "No animations found.";
+    empty.textContent = t("animationPlayer.empty", "No animations found.");
     panel.appendChild(empty);
     root.appendChild(panel);
     return noopHandle;
@@ -250,12 +262,23 @@ export function renderAnimationPlayer(
 
   const select = document.createElement("select");
   select.className = "animation-player__select";
-  select.setAttribute("aria-label", "Animation");
+  select.setAttribute(
+    "aria-label",
+    t("animationPlayer.animationSelectLabel", "Animation"),
+  );
+  const animationOptions: HTMLOptionElement[] = [];
   for (const animation of sortedAnimations) {
     const option = document.createElement("option");
     option.value = String(animation.number);
-    option.textContent = `Animation ${animation.number}`;
+    option.textContent = t(
+      "animationPlayer.animationOption",
+      "Animation {{number}}",
+      {
+        number: String(animation.number),
+      },
+    );
     select.appendChild(option);
+    animationOptions.push(option);
   }
 
   const playPauseButton = document.createElement("button");
@@ -265,8 +288,11 @@ export function renderAnimationPlayer(
   const stepButton = document.createElement("button");
   stepButton.type = "button";
   stepButton.className = "animation-player__step";
-  stepButton.textContent = "Step";
-  stepButton.title = "Step to the next frame (pause playback to enable)";
+  stepButton.textContent = t("animationPlayer.stepButton", "Step");
+  stepButton.title = t(
+    "animationPlayer.stepButtonTitle",
+    "Step to the next frame (pause playback to enable)",
+  );
 
   const loopId = `animation-player-loop-${Math.random().toString(36).slice(2)}`;
   const loopWrapper = document.createElement("div");
@@ -277,7 +303,7 @@ export function renderAnimationPlayer(
   loopInput.id = loopId;
   const loopLabel = document.createElement("label");
   loopLabel.htmlFor = loopId;
-  loopLabel.textContent = "Loop";
+  loopLabel.textContent = t("animationPlayer.loopLabel", "Loop");
   loopWrapper.append(loopInput, loopLabel);
 
   const collisionId = `animation-player-collision-${Math.random().toString(36).slice(2)}`;
@@ -289,7 +315,10 @@ export function renderAnimationPlayer(
   collisionInput.id = collisionId;
   const collisionLabel = document.createElement("label");
   collisionLabel.htmlFor = collisionId;
-  collisionLabel.textContent = "Show collision boxes";
+  collisionLabel.textContent = t(
+    "animationPlayer.collisionLabel",
+    "Show collision boxes",
+  );
   collisionWrapper.append(collisionInput, collisionLabel);
 
   const frameCounter = document.createElement("p");
@@ -360,18 +389,34 @@ export function renderAnimationPlayer(
   }
 
   function updatePlayPauseButton(): void {
-    playPauseButton.textContent = playing ? "Pause" : "Play";
+    playPauseButton.textContent = playing
+      ? t("animationPlayer.pause", "Pause")
+      : t("animationPlayer.play", "Play");
     playPauseButton.setAttribute("aria-pressed", String(playing));
     stepButton.disabled = playing;
   }
 
   function updateFrameCounter(): void {
-    frameCounter.textContent = `Frame ${currentFrameIndex + 1} / ${currentAnimation.frames.length}`;
+    frameCounter.textContent = t(
+      "animationPlayer.frameCounter",
+      "Frame {{current}} / {{total}}",
+      {
+        current: String(currentFrameIndex + 1),
+        total: String(currentAnimation.frames.length),
+      },
+    );
   }
+
+  // Whether `status` is currently showing one of this module's own
+  // translatable texts ("blank"/"loading") — retranslated on a locale
+  // change; a raw WASM/bridge decode error or the empty "shown" state is
+  // left untouched.
+  let previewStatusKind: "blank" | "loading" | "error" | "shown" = "shown";
 
   function showDecodeError(token: number, message: string): void {
     if (token !== selectionToken) return; // superseded by a later frame
     canvas.hidden = true;
+    previewStatusKind = "error";
     status.textContent = message;
     status.className =
       "animation-player__preview-status animation-player__preview-status--error";
@@ -384,14 +429,19 @@ export function renderAnimationPlayer(
 
     if (isBlankFrame(frame)) {
       canvas.hidden = true;
-      status.textContent = "Blank frame (no sprite for this frame).";
+      previewStatusKind = "blank";
+      status.textContent = t(
+        "animationPlayer.blankFrame",
+        "Blank frame (no sprite for this frame).",
+      );
       status.className =
         "animation-player__preview-status animation-player__preview-status--blank";
       return;
     }
 
     canvas.hidden = true;
-    status.textContent = "Loading…";
+    previewStatusKind = "loading";
+    status.textContent = t("animationPlayer.loading", "Loading…");
     status.className = "animation-player__preview-status";
 
     resolvePixels(
@@ -413,6 +463,7 @@ export function renderAnimationPlayer(
         canvas.style.height = `${result.height * scale}px`;
         drawPixels(canvas, result.pixels, result.width, result.height);
         canvas.hidden = false;
+        previewStatusKind = "shown";
         status.textContent = "";
         status.className = "animation-player__preview-status";
 
@@ -523,6 +574,47 @@ export function renderAnimationPlayer(
   select.value = String(sortedAnimations[0].number);
   updatePlayPauseButton();
   showFrame();
+
+  // Live locale switching (backlog item 018): every static label, each
+  // animation option's text, the Play/Pause label and frame counter
+  // (recomputed from their own already-tracked state), and the preview
+  // status (only while it's showing this module's own translatable
+  // "blank"/"loading" text) retranslate in place — playback position,
+  // loop/collision-overlay state, and an in-flight decode are untouched.
+  currentUnsubscribeLocaleChange = onLocaleChange(() => {
+    heading.textContent = t("animationPlayer.heading", "Animation Player");
+    select.setAttribute(
+      "aria-label",
+      t("animationPlayer.animationSelectLabel", "Animation"),
+    );
+    animationOptions.forEach((option, index) => {
+      option.textContent = t(
+        "animationPlayer.animationOption",
+        "Animation {{number}}",
+        { number: String(sortedAnimations[index].number) },
+      );
+    });
+    stepButton.textContent = t("animationPlayer.stepButton", "Step");
+    stepButton.title = t(
+      "animationPlayer.stepButtonTitle",
+      "Step to the next frame (pause playback to enable)",
+    );
+    loopLabel.textContent = t("animationPlayer.loopLabel", "Loop");
+    collisionLabel.textContent = t(
+      "animationPlayer.collisionLabel",
+      "Show collision boxes",
+    );
+    updatePlayPauseButton();
+    updateFrameCounter();
+    if (previewStatusKind === "blank") {
+      status.textContent = t(
+        "animationPlayer.blankFrame",
+        "Blank frame (no sprite for this frame).",
+      );
+    } else if (previewStatusKind === "loading") {
+      status.textContent = t("animationPlayer.loading", "Loading…");
+    }
+  });
 
   return {
     setPaletteOverride(overridePaletteBytes) {

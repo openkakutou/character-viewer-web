@@ -9,6 +9,7 @@
 // it, since this app only loads the 4 required character files, never any
 // referenced `.act` file. See
 // .vibe/decisions/010-palette-picker-scope-and-external-override-only.md.
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import { readFileAsBytes } from "../input/character-file-input.ts";
 import {
   type SpritePixelResult,
@@ -34,6 +35,36 @@ export interface PalettePickerOptions {
 }
 
 /**
+ * `renderPalettePicker` is only ever really invoked once per session, but
+ * tests call it repeatedly — torn down at the top of every call, before a
+ * fresh one is made, so a locale-change subscription from a previous call
+ * never accumulates or fires against content no longer on the page. See
+ * .vibe/decisions/019-i18n-integration-approach.md.
+ */
+let currentUnsubscribeLocaleChange: (() => void) | undefined;
+
+function formatReferenced(character: CharacterData): string {
+  const count = character.palettes.length;
+  if (count === 0) {
+    return t(
+      "palettePicker.referencedNone",
+      "This character references no external palette files.",
+    );
+  }
+  const noun = t(
+    count === 1
+      ? "palettePicker.paletteFileSingular"
+      : "palettePicker.paletteFilePlural",
+    count === 1 ? "palette file" : "palette files",
+  );
+  return t(
+    "palettePicker.referencedSome",
+    "This character references {{count}} {{noun}} for player-color variants: {{names}}. Upload one below to preview it.",
+    { count: String(count), noun, names: character.palettes.join(", ") },
+  );
+}
+
+/**
  * Renders the palette picker into `root`, replacing its previous content
  * (and any in-flight upload state) entirely. `character === null` or
  * `sffBytes === null` (nothing loaded yet) renders nothing, mirroring the
@@ -45,6 +76,8 @@ export function renderPalettePicker(
   sffBytes: Uint8Array | null,
   options: PalettePickerOptions,
 ): void {
+  currentUnsubscribeLocaleChange?.();
+  currentUnsubscribeLocaleChange = undefined;
   root.replaceChildren();
   if (character === null || sffBytes === null) return;
   const sffBytesNonNull: Uint8Array = sffBytes;
@@ -63,20 +96,25 @@ export function renderPalettePicker(
   panel.className = "palette-picker";
 
   const heading = document.createElement("h3");
-  heading.textContent = "Palette";
+  heading.textContent = t("palettePicker.heading", "Palette");
   panel.appendChild(heading);
 
   const referenced = document.createElement("p");
   referenced.className = "palette-picker__referenced";
-  referenced.textContent =
-    characterNonNull.palettes.length === 0
-      ? "This character references no external palette files."
-      : `This character references ${characterNonNull.palettes.length} palette file${characterNonNull.palettes.length === 1 ? "" : "s"} for player-color variants: ${characterNonNull.palettes.join(", ")}. Upload one below to preview it.`;
+  referenced.textContent = formatReferenced(characterNonNull);
   panel.appendChild(referenced);
 
   const uploadLabel = document.createElement("label");
   uploadLabel.className = "palette-picker__upload-label";
-  uploadLabel.textContent = "Load palette override (.act)";
+  uploadLabel.textContent = t(
+    "palettePicker.uploadLabel",
+    "Load palette override (.act)",
+  );
+  // Kept as its own reference: the input is appended as a sibling node
+  // right after it, so this label's own text can't simply be reset via
+  // `uploadLabel.textContent = ...` again later without also destroying
+  // (and needing to re-append) that child input.
+  const uploadLabelText = uploadLabel.firstChild;
   const uploadInput = document.createElement("input");
   uploadInput.type = "file";
   uploadInput.accept = ".act";
@@ -92,32 +130,52 @@ export function renderPalettePicker(
   const resetButton = document.createElement("wuik-button");
   resetButton.setAttribute("variant", "secondary");
   resetButton.dataset.action = "reset-palette";
-  resetButton.textContent = "Reset to character's own palette";
+  resetButton.textContent = t(
+    "palettePicker.resetButton",
+    "Reset to character's own palette",
+  );
 
   panel.append(status, resetButton);
   root.appendChild(panel);
 
   let activeFileName: string | null = null;
   let requestToken = 0;
+  // Whether `status` is currently showing one of this module's own
+  // translatable texts ("idle" — using-own/active-override, computed from
+  // `activeFileName` — or "checking") — retranslated on a locale change; a
+  // raw WASM/bridge probe error is left untouched.
+  let statusKind: "idle" | "checking" | "read-error" | "raw" = "idle";
 
   function refreshStatusAndReset(): void {
+    statusKind = "idle";
     status.textContent = activeFileName
-      ? `Active palette override: ${activeFileName}.`
-      : "Using each sprite's own palette.";
+      ? t(
+          "palettePicker.statusActiveOverride",
+          "Active palette override: {{fileName}}.",
+          {
+            fileName: activeFileName,
+          },
+        )
+      : t("palettePicker.statusUsingOwn", "Using each sprite's own palette.");
     resetButton.toggleAttribute("disabled", activeFileName === null);
   }
   refreshStatusAndReset();
 
   async function handleUpload(file: File): Promise<void> {
     const token = ++requestToken;
-    status.textContent = "Checking…";
+    statusKind = "checking";
+    status.textContent = t("palettePicker.statusChecking", "Checking…");
 
     let bytes: Uint8Array;
     try {
       bytes = await readFileBytes(file);
     } catch {
       if (token !== requestToken) return;
-      status.textContent = "Could not read the selected file.";
+      statusKind = "read-error";
+      status.textContent = t(
+        "palettePicker.errorReadFile",
+        "Could not read the selected file.",
+      );
       return;
     }
     if (token !== requestToken) return; // superseded by a later upload
@@ -141,6 +199,7 @@ export function renderPalettePicker(
     if (token !== requestToken) return; // superseded by a later upload
 
     if (!result.ok) {
+      statusKind = "raw";
       status.textContent = result.error;
       return; // active override (if any) is left unchanged
     }
@@ -165,5 +224,34 @@ export function renderPalettePicker(
     activeFileName = null;
     options.onPaletteChange(null);
     refreshStatusAndReset();
+  });
+
+  // Live locale switching (backlog item 018): static labels always
+  // retranslate; the status line only retranslates when it's currently
+  // showing this module's own translatable text ("idle"/"checking"/
+  // "read-error") — a raw WASM/bridge probe error is left untouched.
+  currentUnsubscribeLocaleChange = onLocaleChange(() => {
+    heading.textContent = t("palettePicker.heading", "Palette");
+    referenced.textContent = formatReferenced(characterNonNull);
+    if (uploadLabelText) {
+      uploadLabelText.textContent = t(
+        "palettePicker.uploadLabel",
+        "Load palette override (.act)",
+      );
+    }
+    resetButton.textContent = t(
+      "palettePicker.resetButton",
+      "Reset to character's own palette",
+    );
+    if (statusKind === "idle") {
+      refreshStatusAndReset();
+    } else if (statusKind === "checking") {
+      status.textContent = t("palettePicker.statusChecking", "Checking…");
+    } else if (statusKind === "read-error") {
+      status.textContent = t(
+        "palettePicker.errorReadFile",
+        "Could not read the selected file.",
+      );
+    }
   });
 }

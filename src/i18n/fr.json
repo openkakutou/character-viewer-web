@@ -1,0 +1,114 @@
+{
+  "app": {
+    "languageLabel": "Langue"
+  },
+  "shell": {
+    "section": {
+      "characteristics": "Caractéristiques",
+      "palette": "Palette",
+      "sprites": "Sprites",
+      "animation": "Animation",
+      "inGamePreview": "Aperçu en jeu",
+      "specialMoves": "Coups spéciaux"
+    }
+  },
+  "fileInput": {
+    "label": "Sélectionnez un dossier de personnage (contenant son fichier .def, par ex. kfm.def)",
+    "hint": "…ou glissez-déposez un dossier de personnage ici",
+    "whichFileLegend": "Quel fichier correspond au personnage ?",
+    "loadSelectedButton": "Charger le fichier sélectionné",
+    "resetButton": "Choisir un autre dossier",
+    "statusReadingFolder": "Lecture du dossier sélectionné…",
+    "statusReadingFile": "Lecture de {{fileName}}…",
+    "statusCharacterLoaded": "Personnage chargé : {{name}}",
+    "statusFoundCandidates": "{{count}} fichiers .def trouvés dans le dossier sélectionné — choisissez lequel correspond au personnage.",
+    "errorNoFiles": "Impossible de lire quoi que ce soit dans le dossier sélectionné — votre navigateur ne prend peut-être pas en charge la sélection de dossier ici.",
+    "errorNoCandidate": "Aucun fichier .def trouvé dans ce dossier — un fichier comme kfm.def était attendu.",
+    "errorReadFile": "Impossible de lire {{fileName}} : {{message}}",
+    "errorBridge": "Impossible de charger le personnage : {{message}}",
+    "errorReferenceMissingKind": "Le fichier .def sélectionné ne référence aucun fichier {{kind}}.",
+    "errorReferenceNotFound": "Le fichier .def sélectionné référence « {{name}} » pour son fichier {{kind}}, mais ce fichier est introuvable dans le dossier sélectionné.",
+    "errorReferenceAmbiguous": "Le fichier .def sélectionné référence « {{name}} » pour son fichier {{kind}}, mais {{count}} fichiers du dossier partagent ce nom — impossible de déterminer lequel utiliser."
+  },
+  "characteristicsPanel": {
+    "authorLabel": "Auteur : {{name}}",
+    "animationsLabel": "Animations",
+    "spritesLabel": "Sprites",
+    "statesHeading": "États ({{count}})",
+    "statesEmpty": "Aucun Statedef trouvé.",
+    "filesHeading": "Fichiers",
+    "spriteFileLabel": "Fichier de sprites",
+    "animationFileLabel": "Fichier d'animation",
+    "soundFileLabel": "Fichier son",
+    "commandFileLabel": "Fichier de commandes",
+    "constantsFileLabel": "Fichier de constantes",
+    "stateFileLabel": "Fichier d'état"
+  },
+  "spriteBrowser": {
+    "heading": "Sprites ({{count}})",
+    "empty": "Aucun sprite trouvé.",
+    "groupToggle": "Groupe {{index}} ({{count}})",
+    "loading": "Chargement…"
+  },
+  "palettePicker": {
+    "heading": "Palette",
+    "referencedNone": "Ce personnage ne référence aucun fichier de palette externe.",
+    "referencedSome": "Ce personnage référence {{count}} {{noun}} pour ses variantes de couleur : {{names}}. Chargez-en un ci-dessous pour le prévisualiser.",
+    "paletteFileSingular": "fichier de palette",
+    "paletteFilePlural": "fichiers de palette",
+    "uploadLabel": "Charger une palette de remplacement (.act)",
+    "resetButton": "Revenir à la palette d'origine du personnage",
+    "statusUsingOwn": "Utilisation de la palette propre à chaque sprite.",
+    "statusActiveOverride": "Palette de remplacement active : {{fileName}}.",
+    "statusChecking": "Vérification…",
+    "errorReadFile": "Impossible de lire le fichier sélectionné."
+  },
+  "animationPlayer": {
+    "heading": "Lecteur d'animation",
+    "empty": "Aucune animation trouvée.",
+    "animationSelectLabel": "Animation",
+    "animationOption": "Animation {{number}}",
+    "stepButton": "Étape",
+    "stepButtonTitle": "Passer à l'image suivante (mettre en pause pour activer)",
+    "loopLabel": "Boucle",
+    "collisionLabel": "Afficher les boîtes de collision",
+    "frameCounter": "Image {{current}} / {{total}}",
+    "play": "Lecture",
+    "pause": "Pause",
+    "blankFrame": "Image vide (aucun sprite pour cette image).",
+    "loading": "Chargement…"
+  },
+  "gifExport": {
+    "exportGifButton": "Exporter le GIF",
+    "exportStandButton": "Exporter Stand",
+    "standLabel": "Stand",
+    "encoding": "Encodage de {{label}}…",
+    "exported": "{{filename}} exporté.",
+    "noStandAnimation": "Aucune animation « Stand » (Animation 0) trouvée pour ce personnage."
+  },
+  "animationTriggers": {
+    "heading": "Aperçu en jeu",
+    "empty": "Aucune animation trouvée.",
+    "listLabel": "Animations",
+    "nowPlayingNone": "Aucune animation sélectionnée.",
+    "nowPlayingPlaying": "Lecture en cours : Animation {{number}}",
+    "nowPlayingStopped": "Animation {{number}} (arrêtée)",
+    "loading": "Chargement…",
+    "blankFrame": "Image vide (aucun sprite pour cette image).",
+    "triggerButton": "Animation {{number}}"
+  },
+  "specialMoveList": {
+    "heading": "Coups spéciaux",
+    "empty": "Aucun Statedef trouvé.",
+    "listLabel": "États",
+    "nowPlayingNone": "Aucun état sélectionné.",
+    "nowPlayingPlaying": "Lecture en cours : État {{state}} — Animation {{anim}}",
+    "nowPlayingStopped": "État {{state}} (arrêté)",
+    "nowPlayingSelectedNoAnim": "État {{state}} sélectionné — aucune animation",
+    "unavailable": "Aucune animation associée à cet état.",
+    "loading": "Chargement…",
+    "blankFrame": "Image vide (aucun sprite pour cette image).",
+    "triggerButton": "État {{number}}",
+    "hintNoAnimation": "aucune animation"
+  }
+}

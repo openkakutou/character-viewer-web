@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { initAppI18n } from "../i18n/i18n.ts";
 import { resetWasmBridgeForTests } from "../wasm/bridge.ts";
 import type { WasmBridgeOptions } from "../wasm/bridge.ts";
 import type { CharacterData } from "../wasm/types.ts";
@@ -354,5 +355,43 @@ describe("renderCharacterFileInput", () => {
     renderCharacterFileInput(root, { onLoaded: vi.fn() });
 
     expect(root.querySelectorAll('input[type="file"]')).toHaveLength(1);
+  });
+
+  describe("live locale switching", () => {
+    afterEach(async () => {
+      window.localStorage.clear();
+    });
+
+    it("retranslates the always-visible static labels and an already-shown error status in place when the locale changes", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const root = document.createElement("div");
+      const onLoaded = vi.fn();
+      renderCharacterFileInput(root, { onLoaded, bridgeOptions: testOptions });
+
+      await selectViaPicker(root, [
+        withRelativePath(makeFile("readme.txt"), "pack/readme.txt"),
+      ]);
+      expect(onLoaded).not.toHaveBeenCalled();
+      expect(status(root).textContent).toContain(".def");
+
+      await instance.changeLanguage("fr");
+
+      expect(
+        root.querySelector<HTMLLabelElement>(".file-input__label")?.textContent,
+      ).toContain("dossier");
+      expect(
+        root.querySelector<HTMLButtonElement>('[data-action="reset"]')
+          ?.textContent,
+      ).toBe("Choisir un autre dossier");
+      // The error status retranslates too, in the new locale, without
+      // losing its error styling.
+      expect(status(root).textContent).toContain(".def");
+      expect(status(root).classList.contains("file-input__status--error")).toBe(
+        true,
+      );
+
+      await instance.changeLanguage("en");
+    });
   });
 });
