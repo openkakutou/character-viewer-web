@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-22
+
 ### Added
 
 - Automated screenshot comparison tests now cover the sprite browser's decoded sprite preview, the animation player's Clsn hit/hurt box overlay on and off, and the palette picker's live-recolored preview after applying an external palette, guarding against a rendering regression going unnoticed. They run as their own job in the deployment pipeline, separate from the regular test suite, and block publishing on a diff.
@@ -106,7 +108,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.12.0...v0.13.0
