@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-22
+
 ### Added
 
 - The app is now available in French in addition to English, switchable live from a language selector in the toolbar (no page reload needed) — your choice is remembered the next time you visit. The language you get on first visit matches your browser's own language setting.
@@ -100,7 +102,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.11.0...v0.12.0
