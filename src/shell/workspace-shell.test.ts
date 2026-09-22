@@ -4,6 +4,8 @@
 // + exactly one section visible at a time in main, with per-section state
 // preserved across switches and the Animation section auto-pausing when
 // navigated away from.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Registers the `wuik-*` custom elements — normally done once by `main.ts`
 // (the app's composition root) before any of these render functions ever
@@ -11,6 +13,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // behavior directly, so it needs that registration itself.
 import "@openkakutou/web-ui-kit";
 import { initAppI18n } from "../i18n/i18n.ts";
+import { resetWasmBridgeForTests } from "../wasm/bridge.ts";
+import type { WasmBridgeOptions } from "../wasm/bridge.ts";
 import type { CharacterData } from "../wasm/types.ts";
 import { renderWorkspaceShell } from "./workspace-shell.ts";
 
@@ -459,5 +463,409 @@ describe("renderWorkspaceShell", () => {
         root.remove();
       }
     });
+  });
+});
+
+/**
+ * Tests for the "Load character…" popup (backlog item 021): a toolbar
+ * button opens a `<wuik-dialog>` hosting the same folder-based
+ * `character-file-input-view.ts` widget the launch screen uses, so a
+ * different character can be loaded mid-session without tearing down the
+ * one already loaded until the new one actually validates. Real timers
+ * (not `vi.useFakeTimers()`, unlike the describe block above) — the folder
+ * load path goes through real `FileReader`/WASM async work that fake timers
+ * would only complicate, matching `character-file-input-view.test.ts`'s own
+ * convention.
+ */
+describe("Load character… popup (backlog item 021)", () => {
+  const publicWasmDir = path.resolve(
+    import.meta.dirname,
+    "..",
+    "..",
+    "public",
+    "wasm",
+  );
+  const testOptions: WasmBridgeOptions = {
+    fetchWasmExecSource: async () =>
+      readFileSync(path.join(publicWasmDir, "wasm_exec.js"), "utf-8"),
+    fetchWasmBytes: async () =>
+      new Uint8Array(readFileSync(path.join(publicWasmDir, "character.wasm"))),
+  };
+  const testdataDir = path.resolve(
+    import.meta.dirname,
+    "..",
+    "wasm",
+    "testdata",
+  );
+
+  function fixtureBytes(name: string): Uint8Array {
+    return new Uint8Array(readFileSync(path.join(testdataDir, name)));
+  }
+
+  function defText(name: string, basename = "ryu"): string {
+    return `[Info]\nname = ${name}\n\n[Files]\nsprite = ${basename}.sff\nanim = ${basename}.air\ncns = ${basename}.cns\n`;
+  }
+
+  /** Mirrors `character-file-input-view.test.ts`'s own `makeFile` — the
+   * `BufferSource` cast works around a `Uint8Array<ArrayBufferLike>` vs
+   * `BlobPart`'s stricter `ArrayBufferView<ArrayBuffer>` mismatch in the
+   * pinned TypeScript DOM lib. */
+  function makeFile(name: string, contents: BlobPart | Uint8Array): File {
+    return new File([contents as BufferSource], name);
+  }
+
+  function withRelativePath(file: File, relativePath: string): File {
+    Object.defineProperty(file, "webkitRelativePath", {
+      value: relativePath,
+    });
+    return file;
+  }
+
+  /** A complete, valid folder — a real WASM `loadCharacter` call succeeds. */
+  function completeFolderFiles(name: string): File[] {
+    return [
+      withRelativePath(makeFile("ryu.def", defText(name)), "ryu/ryu.def"),
+      withRelativePath(
+        makeFile("ryu.air", fixtureBytes("sample.air")),
+        "ryu/ryu.air",
+      ),
+      withRelativePath(
+        makeFile("ryu.sff", fixtureBytes("v1-basic.sff")),
+        "ryu/ryu.sff",
+      ),
+      withRelativePath(
+        makeFile("ryu.cns", fixtureBytes("sample.cns")),
+        "ryu/ryu.cns",
+      ),
+    ];
+  }
+
+  /** Two `.def` candidates — resolves synchronously to "needs-selection", no WASM call. */
+  function twoDefCandidateFiles(): File[] {
+    return [
+      withRelativePath(
+        makeFile("one.def", defText("Candidate One")),
+        "folder/one.def",
+      ),
+      withRelativePath(
+        makeFile("two.def", defText("Candidate Two")),
+        "folder/two.def",
+      ),
+    ];
+  }
+
+  /** A `.def` referencing a `.cns` that isn't in the folder — fails before any WASM call. */
+  function folderMissingCns(name: string): File[] {
+    return [
+      withRelativePath(makeFile("ryu.def", defText(name)), "ryu/ryu.def"),
+      withRelativePath(
+        makeFile("ryu.air", fixtureBytes("sample.air")),
+        "ryu/ryu.air",
+      ),
+      withRelativePath(
+        makeFile("ryu.sff", fixtureBytes("v1-basic.sff")),
+        "ryu/ryu.sff",
+      ),
+    ];
+  }
+
+  function character(name = "Ryu"): CharacterData {
+    return {
+      name,
+      animations: [],
+      sprites: [
+        {
+          index: 0,
+          sprites: [
+            {
+              group: 0,
+              image: 0,
+              width: 20,
+              height: 20,
+              axisX: 0,
+              axisY: 0,
+              palette: 0,
+            },
+          ],
+        },
+      ],
+      stateDefs: [],
+      palettes: [],
+      author: "",
+      spriteFile: "",
+      animationFile: "",
+      soundFile: "",
+      commandFile: "",
+      constantsFile: "",
+      stateFiles: [],
+    };
+  }
+
+  const sffBytes = new Uint8Array([1, 2, 3]);
+
+  function loadCharacterButton(root: HTMLElement): HTMLElement {
+    const button = root.querySelector<HTMLElement>(
+      '[data-action="load-character"]',
+    );
+    if (!button) throw new Error("Load character… button not found");
+    return button;
+  }
+
+  function dialog(root: HTMLElement): HTMLElement {
+    const el = root.querySelector<HTMLElement>(
+      ".workspace-shell__load-character-dialog",
+    );
+    if (!el) throw new Error("dialog not found");
+    return el;
+  }
+
+  function dialogPicker(root: HTMLElement): HTMLInputElement {
+    const input =
+      dialog(root).querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error("dialog folder picker not found");
+    return input;
+  }
+
+  async function pickFolder(root: HTMLElement, files: File[]): Promise<void> {
+    const input = dialogPicker(root);
+    Object.defineProperty(input, "files", { value: files, configurable: true });
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    // Let the (possibly async) folder-load pipeline settle at least one tick.
+    await vi.waitFor(() => {
+      const stillReading = dialog(root)
+        .querySelector('[role="status"]')
+        ?.textContent?.toLowerCase()
+        .includes("reading");
+      if (stillReading) throw new Error("still loading");
+    });
+  }
+
+  async function realTabButton(
+    root: HTMLElement,
+    index: number,
+  ): Promise<HTMLButtonElement> {
+    await vi.waitFor(() => {
+      const tabs = root.querySelector("wuik-tabs");
+      const button =
+        tabs?.shadowRoot?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[
+          index
+        ];
+      if (!button) throw new Error(`tab button ${index} not ready`);
+    });
+    const tabs = root.querySelector("wuik-tabs");
+    return tabs?.shadowRoot?.querySelectorAll<HTMLButtonElement>(
+      '[role="tab"]',
+    )[index] as HTMLButtonElement;
+  }
+
+  function panels(root: HTMLElement): HTMLElement[] {
+    return Array.from(root.querySelectorAll<HTMLElement>("wuik-tab-panel"));
+  }
+
+  beforeEach(() => {
+    resetWasmBridgeForTests();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("opens a dialog with an empty folder-input widget, without hiding or resetting the currently loaded character underneath", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    renderWorkspaceShell(root, "0.1.0", character(), sffBytes, {
+      bridgeOptions: testOptions,
+    });
+
+    expect(dialog(root).hasAttribute("open")).toBe(false);
+
+    loadCharacterButton(root).click();
+
+    expect(dialog(root).hasAttribute("open")).toBe(true);
+    expect(dialogPicker(root)).not.toBeNull();
+    // The underlying workspace is still there, untouched, behind the dialog.
+    expect(root.querySelector('[slot="toolbar"]')?.textContent).toContain(
+      "Ryu",
+    );
+    expect(root.querySelector(".characteristics-panel")).not.toBeNull();
+  });
+
+  it("replaces the character, resets every section's own state, but keeps the currently active sidebar section selected", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    renderWorkspaceShell(root, "0.1.0", character("Ryu"), sffBytes, {
+      bridgeOptions: testOptions,
+    });
+
+    // Switch to Sprites and expand a group — state that must reset.
+    (await realTabButton(root, 2)).click();
+    await vi.waitFor(() =>
+      expect(
+        root
+          .querySelector("wuik-tabs")
+          ?.shadowRoot?.querySelector('[aria-selected="true"]')?.textContent,
+      ).toBe("Sprites"),
+    );
+    root
+      .querySelector<HTMLButtonElement>(".sprite-browser__group-toggle")
+      ?.click();
+    expect(
+      root
+        .querySelector(".sprite-browser__group-toggle")
+        ?.getAttribute("aria-expanded"),
+    ).toBe("true");
+
+    loadCharacterButton(root).click();
+    await pickFolder(root, completeFolderFiles("Switched Character"));
+
+    await vi.waitFor(() =>
+      expect(dialog(root).hasAttribute("open")).toBe(false),
+    );
+
+    expect(root.querySelector('[slot="toolbar"]')?.textContent).toContain(
+      "Switched Character",
+    );
+
+    // Sprites is still the selected sidebar section...
+    const sectionPanels = panels(root);
+    expect(sectionPanels[2].hidden).toBe(false);
+    expect(sectionPanels[0].hidden).toBe(true);
+
+    // ...but its own state (the expanded group) has been rebuilt fresh —
+    // the sprite browser now reflects the newly loaded character's own
+    // sprite sheet, collapsed by default rather than reusing the old one's
+    // expanded state.
+    expect(
+      root
+        .querySelector(".sprite-browser__group-toggle")
+        ?.getAttribute("aria-expanded"),
+    ).toBe("false");
+  });
+
+  it("closing the dialog without completing a load discards the in-progress widget, leaving the original character untouched, and shows a fresh widget next time it opens", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    renderWorkspaceShell(root, "0.1.0", character("Ryu"), sffBytes, {
+      bridgeOptions: testOptions,
+    });
+
+    loadCharacterButton(root).click();
+    const input = dialogPicker(root);
+    Object.defineProperty(input, "files", {
+      value: twoDefCandidateFiles(),
+      configurable: true,
+    });
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(dialog(root).querySelector("fieldset")).not.toBeNull(),
+    );
+
+    // Close without completing (Esc, per <wuik-dialog>'s own contract).
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    expect(dialog(root).hasAttribute("open")).toBe(false);
+
+    // The original character is untouched.
+    expect(root.querySelector('[slot="toolbar"]')?.textContent).toContain(
+      "Ryu",
+    );
+
+    // Reopening shows a fresh, empty widget — not the leftover candidate picker.
+    loadCharacterButton(root).click();
+    expect(dialog(root).querySelector("fieldset")).toBeNull();
+    expect(dialog(root).querySelector('[role="status"]')?.textContent).toBe("");
+  });
+
+  it("ignores a load that only succeeds after the dialog was already closed, never swapping the character out from under the user", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    renderWorkspaceShell(root, "0.1.0", character("Ryu"), sffBytes, {
+      bridgeOptions: testOptions,
+    });
+
+    loadCharacterButton(root).click();
+    const input = dialogPicker(root);
+    Object.defineProperty(input, "files", {
+      value: completeFolderFiles("Late Success Character"),
+      configurable: true,
+    });
+    // Dispatch the (async) folder load, then close the dialog in the very
+    // same tick — before the FileReader/WASM pipeline has any chance to
+    // resolve — simulating a user who dismisses the popup while a pick is
+    // still being validated.
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    expect(dialog(root).hasAttribute("open")).toBe(false);
+
+    // Give the real WASM pipeline plenty of time to actually finish.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // The late success must have been ignored entirely — the *displayed*
+    // character name (not the now-orphaned dialog widget's own leftover
+    // status text) is what actually matters here.
+    expect(dialog(root).hasAttribute("open")).toBe(false);
+    expect(
+      root.querySelector(".workspace-shell__character-name")?.textContent,
+    ).toBe("Ryu");
+  });
+
+  it("does nothing if the toolbar button is clicked again while the dialog is already open, rather than restarting the widget", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    renderWorkspaceShell(root, "0.1.0", character("Ryu"), sffBytes, {
+      bridgeOptions: testOptions,
+    });
+
+    loadCharacterButton(root).click();
+    const firstWidget = dialog(root).querySelector(".file-input");
+    loadCharacterButton(root).click();
+
+    expect(dialog(root).querySelector(".file-input")).toBe(firstWidget);
+  });
+
+  it("a failed load in the popup shows the error there and leaves the original character and every section's state completely intact", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    renderWorkspaceShell(root, "0.1.0", character("Ryu"), sffBytes, {
+      bridgeOptions: testOptions,
+    });
+
+    (await realTabButton(root, 2)).click(); // Sprites
+    await vi.waitFor(() =>
+      expect(
+        root
+          .querySelector("wuik-tabs")
+          ?.shadowRoot?.querySelector('[aria-selected="true"]')?.textContent,
+      ).toBe("Sprites"),
+    );
+    const groupToggle = root.querySelector<HTMLButtonElement>(
+      ".sprite-browser__group-toggle",
+    );
+    groupToggle?.click();
+    expect(groupToggle?.getAttribute("aria-expanded")).toBe("true");
+
+    loadCharacterButton(root).click();
+    await pickFolder(root, folderMissingCns("Broken Character"));
+
+    await vi.waitFor(() =>
+      expect(
+        dialog(root).querySelector(".file-input__status--error"),
+      ).not.toBeNull(),
+    );
+
+    // The dialog stays open, showing the error...
+    expect(dialog(root).hasAttribute("open")).toBe(true);
+    // ...and the original character/workspace is completely unaffected.
+    expect(root.querySelector('[slot="toolbar"]')?.textContent).toContain(
+      "Ryu",
+    );
+    expect(
+      root
+        .querySelector(".sprite-browser__group-toggle")
+        ?.getAttribute("aria-expanded"),
+    ).toBe("true");
   });
 });

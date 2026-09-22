@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- A "Load character…" toolbar action lets you switch to a different character at any time during a session, from any section, without reloading the page. It opens a popup with the same folder-picker widget as the very first load; the character you already have loaded stays fully visible and usable behind it until the new one actually loads successfully. A failed or cancelled attempt leaves everything exactly as it was. A successful switch resets every section back to its own default view but keeps whichever section you were looking at selected.
+
 ## [0.16.0] - 2026-09-22
 
 ### Added

@@ -10,15 +10,35 @@
 // sidebar/main slots, and why a `MutationObserver` on each panel's `hidden`
 // attribute (not `<wuik-tabs>`'s own click/keydown handling) drives
 // auto-pause and focus-on-switch.
+//
+// Backlog item 021 (mid-session character switching): the toolbar's "Load
+// character…" button opens a `<wuik-dialog>` (`web-ui-kit` item 016)
+// hosting the same folder-based `character-file-input-view.ts` widget the
+// launch screen uses, rendered fresh every time the dialog opens so a
+// cancelled/failed previous attempt never leaks into the next one. Only a
+// *successful* load (`onLoaded`) replaces anything — closing the dialog any
+// other way (Esc, backdrop, close button) leaves the currently loaded
+// character and every section's state completely untouched, since nothing
+// outside the dialog is touched until then. A successful load never
+// recreates `<wuik-tabs>` itself (which has no public API to reselect a
+// specific tab, see decision 011) — it re-invokes each section's own render
+// function on its *existing* container, which is what naturally resets that
+// section's own state to default while the sidebar's current selection,
+// being untouched, stays exactly where it was.
 import type { WuikLocaleSwitcherElement } from "@openkakutou/web-ui-kit";
 import { renderAnimationTriggers } from "../game-mode/animation-triggers.ts";
+import type { AnimationTriggersHandle } from "../game-mode/animation-triggers.ts";
 import { renderSpecialMoveList } from "../game-mode/special-move-list.ts";
+import type { SpecialMoveListHandle } from "../game-mode/special-move-list.ts";
 import { getI18n, onLocaleChange, t } from "../i18n/i18n.ts";
+import { renderCharacterFileInput } from "../input/character-file-input-view.ts";
 import type { CharacterFileInputOptions } from "../input/character-file-input.ts";
 import { renderAnimationPlayer } from "../viewer/animation-player.ts";
+import type { AnimationPlayerHandle } from "../viewer/animation-player.ts";
 import { renderCharacteristicsPanel } from "../viewer/characteristics-panel.ts";
 import { renderPalettePicker } from "../viewer/palette-picker.ts";
 import { renderSpriteBrowser } from "../viewer/sprite-browser.ts";
+import type { SpriteBrowserHandle } from "../viewer/sprite-browser.ts";
 import type { CharacterData } from "../wasm/types.ts";
 
 // The app's own brand name -- a proper noun, deliberately never translated
@@ -149,13 +169,43 @@ export function renderWorkspaceShell(
   const characterName = document.createElement("span");
   characterName.className = "workspace-shell__character-name";
   characterName.textContent = character.name;
+
+  // "Load character…" (backlog item 021): opens a dialog hosting the same
+  // folder-input widget the launch screen uses, over the still-visible,
+  // still-usable workspace — see the module-level doc comment above.
+  const loadCharacterButton = document.createElement("wuik-button");
+  loadCharacterButton.className = "workspace-shell__load-character-button";
+  loadCharacterButton.setAttribute("variant", "secondary");
+  loadCharacterButton.dataset.action = "load-character";
+  loadCharacterButton.textContent = t("shell.loadCharacter", "Load character…");
+
+  const loadCharacterDialog = document.createElement("wuik-dialog");
+  loadCharacterDialog.className = "workspace-shell__load-character-dialog";
+
+  const loadCharacterHeading = document.createElement("span");
+  loadCharacterHeading.slot = "heading";
+  loadCharacterHeading.textContent = t(
+    "shell.loadCharacterDialog.heading",
+    "Load a different character",
+  );
+  loadCharacterDialog.appendChild(loadCharacterHeading);
+
+  const loadCharacterInputContainer = document.createElement("div");
+  loadCharacterDialog.appendChild(loadCharacterInputContainer);
+
   const localeSwitcher = document.createElement(
     "wuik-locale-switcher",
   ) as unknown as WuikLocaleSwitcherElement;
   localeSwitcher.className = "locale-switcher";
   localeSwitcher.setAttribute("label", t("app.languageLabel", "Language"));
   localeSwitcher.i18n = getI18n();
-  toolbar.append(title, characterName, localeSwitcher);
+  toolbar.append(
+    title,
+    characterName,
+    loadCharacterButton,
+    loadCharacterDialog,
+    localeSwitcher,
+  );
   shell.appendChild(toolbar);
 
   const tabs = document.createElement("wuik-tabs");
@@ -194,37 +244,119 @@ export function renderWorkspaceShell(
   shell.appendChild(tabs);
   root.appendChild(shell);
 
-  renderCharacteristicsPanel(characteristics.container, character);
-  const spriteBrowser = renderSpriteBrowser(
-    sprites.container,
-    character,
-    sffBytes,
-    { bridgeOptions: options.bridgeOptions },
-  );
-  const animationPlayer = renderAnimationPlayer(
-    animation.container,
-    character,
-    sffBytes,
-    { bridgeOptions: options.bridgeOptions },
-  );
-  const animationTriggers = renderAnimationTriggers(
-    inGamePreview.container,
-    character,
-    sffBytes,
-    { bridgeOptions: options.bridgeOptions },
-  );
-  const specialMoveList = renderSpecialMoveList(
-    specialMoves.container,
-    character,
-    sffBytes,
-    { bridgeOptions: options.bridgeOptions },
-  );
-  renderPalettePicker(palette.container, character, sffBytes, {
-    bridgeOptions: options.bridgeOptions,
-    onPaletteChange: (overridePaletteBytes) => {
-      spriteBrowser.setPaletteOverride(overridePaletteBytes);
-      animationPlayer.setPaletteOverride(overridePaletteBytes);
-    },
+  /**
+   * The 4 handles a character (re)load produces — kept as one mutable
+   * record (backlog item 021) so a later "Load character…" success can
+   * `pause()` whichever previous handles exist before discarding them, and
+   * so the `MutationObserver` below always reacts against whichever
+   * handles are current rather than the ones captured at initial mount.
+   */
+  interface SectionHandles {
+    spriteBrowser: SpriteBrowserHandle;
+    animationPlayer: AnimationPlayerHandle;
+    animationTriggers: AnimationTriggersHandle;
+    specialMoveList: SpecialMoveListHandle;
+  }
+  let handles: SectionHandles | undefined;
+  // Tracks whichever character is currently loaded — updated by
+  // `loadCharacterIntoSections` (backlog item 021) — so a later locale
+  // change re-renders Characteristics from the *current* character, not the
+  // one this function was first called with.
+  let currentCharacter = character;
+
+  /**
+   * (Re)renders every section's own content into its already-existing
+   * container for `character`/`sffBytes`, pausing whichever previous
+   * handles exist first (backlog item 021 — a character switch must not
+   * leave a self-rescheduling playback timer running against a container
+   * about to be replaced). Each section's own render function already
+   * tears down and rebuilds its own DOM from scratch (`root.replaceChildren()`
+   * at its top), which is what resets that section's own selection/expanded/
+   * playback state to default. Never touches `tabs`/the panels themselves,
+   * so the sidebar's currently active section stays selected — `<wuik-tabs>`
+   * has no public API to reselect a specific tab (decision 011), so simply
+   * never re-creating it is what satisfies that requirement.
+   */
+  function loadCharacterIntoSections(
+    nextCharacter: CharacterData,
+    nextSffBytes: Uint8Array,
+  ): void {
+    handles?.animationPlayer.pause();
+    handles?.animationTriggers.pause();
+    handles?.specialMoveList.pause();
+
+    currentCharacter = nextCharacter;
+    characterName.textContent = nextCharacter.name;
+
+    renderCharacteristicsPanel(characteristics.container, nextCharacter);
+    const spriteBrowser = renderSpriteBrowser(
+      sprites.container,
+      nextCharacter,
+      nextSffBytes,
+      { bridgeOptions: options.bridgeOptions },
+    );
+    const animationPlayer = renderAnimationPlayer(
+      animation.container,
+      nextCharacter,
+      nextSffBytes,
+      { bridgeOptions: options.bridgeOptions },
+    );
+    const animationTriggers = renderAnimationTriggers(
+      inGamePreview.container,
+      nextCharacter,
+      nextSffBytes,
+      { bridgeOptions: options.bridgeOptions },
+    );
+    const specialMoveList = renderSpecialMoveList(
+      specialMoves.container,
+      nextCharacter,
+      nextSffBytes,
+      { bridgeOptions: options.bridgeOptions },
+    );
+    renderPalettePicker(palette.container, nextCharacter, nextSffBytes, {
+      bridgeOptions: options.bridgeOptions,
+      onPaletteChange: (overridePaletteBytes) => {
+        spriteBrowser.setPaletteOverride(overridePaletteBytes);
+        animationPlayer.setPaletteOverride(overridePaletteBytes);
+      },
+    });
+
+    handles = {
+      spriteBrowser,
+      animationPlayer,
+      animationTriggers,
+      specialMoveList,
+    };
+  }
+
+  loadCharacterIntoSections(character, sffBytes);
+
+  // "Load character…" (backlog item 021): the folder-input widget is
+  // rendered fresh every time the dialog opens, so a cancelled or failed
+  // previous attempt never leaks into the next one — closing the dialog any
+  // other way than a successful load simply discards this container's
+  // current content, touching nothing else. Only `onLoaded` (a real success)
+  // closes the dialog and switches the workspace.
+  //
+  // Two guards, both found via UI/UX expert consultation:
+  // - A no-op if the dialog is already open, so a repeat click can't render
+  //   a second fresh widget instance on top of one already validating.
+  // - `onLoaded`'s own check that the dialog is *still* open at the moment
+  //   it fires: the folder-read/WASM call it resolves from is async, so a
+  //   user who already dismissed the dialog (Esc/backdrop/close button)
+  //   before it resolved must not have their workspace silently swapped out
+  //   from under them by a late success they no longer asked for.
+  loadCharacterButton.addEventListener("click", () => {
+    if (loadCharacterDialog.hasAttribute("open")) return;
+    renderCharacterFileInput(loadCharacterInputContainer, {
+      onLoaded: (nextCharacter, nextSffBytes) => {
+        if (!loadCharacterDialog.hasAttribute("open")) return;
+        loadCharacterDialog.toggleAttribute("open", false);
+        loadCharacterIntoSections(nextCharacter, nextSffBytes);
+      },
+      bridgeOptions: options.bridgeOptions,
+    });
+    loadCharacterDialog.toggleAttribute("open", true);
   });
 
   // A single observer reacts to whichever panel `<wuik-tabs>` just
@@ -235,13 +367,13 @@ export function renderWorkspaceShell(
       const panel = mutation.target as HTMLElement;
       if (panel.hidden) {
         if (panel === animation.panel) {
-          animationPlayer.pause();
+          handles?.animationPlayer.pause();
         }
         if (panel === inGamePreview.panel) {
-          animationTriggers.pause();
+          handles?.animationTriggers.pause();
         }
         if (panel === specialMoves.panel) {
-          specialMoveList.pause();
+          handles?.specialMoveList.pause();
         }
       } else {
         focusSectionHeading(panel);
@@ -285,6 +417,14 @@ export function renderWorkspaceShell(
   currentUnsubscribeLocaleChange = onLocaleChange(() => {
     localeSwitcher.setAttribute("label", t("app.languageLabel", "Language"));
     retranslateSectionTabs(tabs, allPanels);
-    renderCharacteristicsPanel(characteristics.container, character);
+    renderCharacteristicsPanel(characteristics.container, currentCharacter);
+    loadCharacterButton.textContent = t(
+      "shell.loadCharacter",
+      "Load character…",
+    );
+    loadCharacterHeading.textContent = t(
+      "shell.loadCharacterDialog.heading",
+      "Load a different character",
+    );
   });
 }

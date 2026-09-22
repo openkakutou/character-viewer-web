@@ -59,7 +59,15 @@ flowchart LR
   two behaviors `<wuik-tabs>` itself has no event for: pausing the
   animation player and, separately, the in-game preview's own playback when
   their section stops being visible, and moving focus to the newly visible
-  section's own heading.
+  section's own heading. A "Load character…" toolbar button (item 021) opens
+  a `<wuik-dialog>` hosting `input`'s file-input view again, rendered fresh
+  every time it opens; only a successful load inside it re-invokes every
+  section's own render function on its already-existing container (pausing
+  any running playback first), which resets each section's state to default
+  without ever recreating `<wuik-tabs>` itself — the sidebar's current
+  selection is untouched, so it stays exactly where it was. Any other way of
+  closing the dialog (Esc, backdrop, close button, or a failed load) leaves
+  the workspace completely unaffected.
 - **`input`** (`src/input/`) — the character file input: folder selection
   only (item 015) — see
   `.vibe/decisions/017-folder-only-input-def-files-parse-and-ported-resolution.md`.

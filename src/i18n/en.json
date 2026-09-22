@@ -3,6 +3,10 @@
     "languageLabel": "Language"
   },
   "shell": {
+    "loadCharacter": "Load character…",
+    "loadCharacterDialog": {
+      "heading": "Load a different character"
+    },
     "section": {
       "characteristics": "Characteristics",
       "palette": "Palette",

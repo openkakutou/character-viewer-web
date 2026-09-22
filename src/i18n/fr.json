@@ -3,6 +3,10 @@
     "languageLabel": "Langue"
   },
   "shell": {
+    "loadCharacter": "Charger un personnage…",
+    "loadCharacterDialog": {
+      "heading": "Charger un autre personnage"
+    },
     "section": {
       "characteristics": "Caractéristiques",
       "palette": "Palette",

@@ -89,6 +89,29 @@ wuik-app-shell {
 }
 
 /*
+ * "Load character…" toolbar action + its dialog (backlog item 021): the
+ * dialog hosts the same `.file-input` widget the launch screen uses. Found
+ * via frontend-design expert consultation: `<wuik-dialog>`'s own inner
+ * `<dialog>` has no width rule of its own (shrink-to-fit, per `web-ui-kit`'s
+ * `dialog.ts`), so without a cap the popup would visibly resize between
+ * widget states (drop zone vs. the multi-`.def` picker's monospace
+ * fieldset) and between locales (French strings run longer). The `.file-input`
+ * widget is real light DOM slotted into the dialog's shadow tree, not shadow
+ * content itself, so it can be capped directly from here — the same
+ * `max-width` the launch screen already applies to this identical widget via
+ * `.launch-screen wuik-panel`, so the widget looks and sizes the same on
+ * both host surfaces.
+ */
+.workspace-shell__load-character-button {
+  margin-left: var(--wuik-space-3);
+}
+
+.workspace-shell__load-character-dialog .file-input {
+  max-width: 40em;
+  width: 100%;
+}
+
+/*
  * `<wuik-tab-panel>` has no shadow root of its own (plain light DOM, see
  * the ADR above), so its content area can be bounded and made to scroll
  * internally directly from this stylesheet — the one place actual
