@@ -215,3 +215,59 @@ untouched, in both directions. Reloading after picking French kept French
 selected (`localStorage`), with the persisted locale already applied by
 first paint rather than flashing English first. Zero console errors
 throughout.
+
+## Visual regression: real Playwright screenshots, checked in CI (backlog item 019)
+
+`npm test` (Vitest) never looks at a rendered pixel. `npm run test:visual`
+(`playwright.config.ts`, specs under `tests/visual/`) is a separate suite
+that does, covering this app's three real rendered surfaces — the sprite
+browser's decoded sprite preview, the animation player's Clsn1/Clsn2 box
+overlay on and off, and the palette picker's live-recolored preview — the
+regression class no unit test or WASM-bridge test can catch, per the
+org-wide rationale in roadmap's
+`.vibe/decisions/024-visual-regression-testing-via-playwright-screenshots.md`.
+
+- Extends `web-ui-kit`'s shared Playwright preset
+  (`@openkakutou/web-ui-kit/testing/visual-preset`): fixed viewport, forced
+  animations/fonts settled, the shared diff threshold.
+- Every baseline is driven through the app's real folder-picker input
+  (`#character-folder-picker`, via `Playwright.setInputFiles` given a
+  directory path) against a vendored fixture folder
+  (`tests/visual/fixtures/character-pack/`): a small hand-authored `.def`
+  paired with byte-for-byte copies of this repo's own existing,
+  already WASM-verified `src/wasm/testdata/{v1-basic.sff,sample.air,sample.cns}`
+  — no separate sprite/animation set authored just for this suite. See
+  `.vibe/decisions/020-visual-regression-fixture-pairs-def-with-existing-wasm-testdata.md`.
+- The palette picker's recolor baseline uploads a real, valid 768-byte
+  `.act` file already vendored elsewhere in this org for the same purpose
+  (`character`'s and `sff`'s own WASM testdata), confirmed once (against
+  the real WASM module, not asserted from the same mapping code under
+  test) to recolor 3204 of the fixture sprite's 5871 pixels — a large,
+  unmistakable change a screenshot diff can't miss. Since the palette
+  picker itself renders no preview canvas, the screenshot target is the
+  sprite browser's own preview after the override propagates to it via
+  `setPaletteOverride` — the same live-update path a real user's upload
+  drives.
+- The app is served via the plain `vite` dev server (`webServer` in
+  `playwright.config.ts`), not a build + `vite preview`, mirroring
+  `lifebar-viewer-web`'s/`character-editor`'s own equivalent choice —
+  `public/wasm/` is served identically either way.
+- Runs in CI (`.github/workflows/deploy-pages.yml`) as its own `visual`
+  job, separate from the fast `build` job's `Test`/`Lint`/`Build` steps, so
+  Playwright's Chromium download/cache never slows that feedback loop.
+  `deploy` only runs once both `build` and `visual` pass — a real
+  rendering regression blocks publishing the same way a failing unit test
+  already does.
+- A failing diff uploads `test-results/` (actual/expected/diff images) as
+  a CI artifact. Updating a baseline is always its own deliberate
+  `--update-snapshots` commit, reviewed like any other change. Confirmed
+  once during this item's own development: temporarily shrinking the
+  sprite/animation preview's scale-to-fit target made both animation
+  player baselines fail with a real, non-trivial pixel diff (6% of the
+  screenshot), while the unrelated sprite browser and palette picker
+  baselines stayed green — reverted immediately after confirming the
+  suite actually catches a real rendering regression.
+
+```sh
+npm run test:visual
+```

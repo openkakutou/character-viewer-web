@@ -1,0 +1,14 @@
+; Minimal, hand-authored .def fixture for the visual-regression suite (backlog
+; item 019). Pairs with this repo's own existing real, WASM-verified fixtures
+; -- character.sff/character.air/character.cns are byte-for-byte copies of
+; src/wasm/testdata/{v1-basic.sff,sample.air,sample.cns} -- rather than a
+; separately hand-authored sprite/animation set. See
+; .vibe/decisions/020-visual-regression-fixture-pairs-def-with-existing-wasm-testdata.md.
+[Info]
+name = Visual Test Character
+author = OpenKakutou
+
+[Files]
+sprite = character.sff
+anim = character.air
+cns = character.cns

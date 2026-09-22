@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Automated screenshot comparison tests now cover the sprite browser's decoded sprite preview, the animation player's Clsn hit/hurt box overlay on and off, and the palette picker's live-recolored preview after applying an external palette, guarding against a rendering regression going unnoticed. They run as their own job in the deployment pipeline, separate from the regular test suite, and block publishing on a diff.
+
 ## [0.15.0] - 2026-09-22
 
 ### Added
