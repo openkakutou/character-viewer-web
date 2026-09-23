@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-09-23
+
 ### Added
 
 - A "Preferences" icon in the toolbar opens a popup with a "Beginner mode" toggle, off by default. Turning it on shows a small info icon next to MUGEN/Ikemen vocabulary (Statedef, palette overrides, sprite groups, collision boxes) across the Characteristics, Palette, Sprites, and Animation sections — hovering or keyboard-focusing an icon reveals a short plain-language explanation. Turning it off hides every icon again immediately, with no other visual change. The setting stays as you left it for the rest of your session, including after switching sections or loading a different character.
@@ -118,7 +120,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added the internal bridge that loads a character's data (name, animations, sprites, combat states) from `.def`/`.air`/`.sff`/`.cns` files via the `character` WebAssembly module, laying the groundwork for the viewer's upcoming screens.
 - Adopted the org's shared `web-ui-kit` design system: the app now uses its standard layout frame (toolbar + main content area) and design tokens, so upcoming screens will look and behave consistently with the rest of the OpenKakutou tools.
 
-[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/openkakutou/character-viewer-web/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/openkakutou/character-viewer-web/compare/v0.14.0...v0.15.0
