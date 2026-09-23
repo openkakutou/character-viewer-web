@@ -11,6 +11,7 @@
 // .vibe/decisions/010-palette-picker-scope-and-external-override-only.md.
 import { onLocaleChange, t } from "../i18n/i18n.ts";
 import { readFileAsBytes } from "../input/character-file-input.ts";
+import { createInfoTooltip } from "../preferences/info-tooltip.ts";
 import {
   type SpritePixelResult,
   type WasmBridgeOptions,
@@ -42,6 +43,8 @@ export interface PalettePickerOptions {
  * .vibe/decisions/019-i18n-integration-approach.md.
  */
 let currentUnsubscribeLocaleChange: (() => void) | undefined;
+/** Same "torn down at top of every call" shape, for the beginner-mode tooltip's own subscription (backlog item 022). */
+let currentDestroyOverrideTooltip: (() => void) | undefined;
 
 function formatReferenced(character: CharacterData): string {
   const count = character.palettes.length;
@@ -78,6 +81,8 @@ export function renderPalettePicker(
 ): void {
   currentUnsubscribeLocaleChange?.();
   currentUnsubscribeLocaleChange = undefined;
+  currentDestroyOverrideTooltip?.();
+  currentDestroyOverrideTooltip = undefined;
   root.replaceChildren();
   if (character === null || sffBytes === null) return;
   const sffBytesNonNull: Uint8Array = sffBytes;
@@ -120,7 +125,23 @@ export function renderPalettePicker(
   uploadInput.accept = ".act";
   uploadInput.className = "palette-picker__upload-input";
   uploadLabel.appendChild(uploadInput);
-  panel.appendChild(uploadLabel);
+
+  const uploadRow = document.createElement("div");
+  uploadRow.className = "palette-picker__upload-row";
+  uploadRow.appendChild(uploadLabel);
+  // Beginner-mode tooltip (backlog item 022): explains what a palette
+  // override is -- a sibling of the label, not nested inside it, so the
+  // icon's own click doesn't also activate the label's wrapped file input.
+  const overrideTooltip = createInfoTooltip(
+    t(
+      "palettePicker.tooltipOverrideText",
+      "An external color table (.act file) you upload, applied to every sprite in place of the character's own colors.",
+    ),
+    t("palettePicker.tooltipOverrideLabel", "What is a palette override?"),
+  );
+  uploadRow.appendChild(overrideTooltip.element);
+  panel.appendChild(uploadRow);
+  currentDestroyOverrideTooltip = overrideTooltip.destroy;
 
   const status = document.createElement("p");
   status.className = "palette-picker__status";
@@ -242,6 +263,13 @@ export function renderPalettePicker(
     resetButton.textContent = t(
       "palettePicker.resetButton",
       "Reset to character's own palette",
+    );
+    overrideTooltip.setText(
+      t(
+        "palettePicker.tooltipOverrideText",
+        "An external color table (.act file) you upload, applied to every sprite in place of the character's own colors.",
+      ),
+      t("palettePicker.tooltipOverrideLabel", "What is a palette override?"),
     );
     if (statusKind === "idle") {
       refreshStatusAndReset();

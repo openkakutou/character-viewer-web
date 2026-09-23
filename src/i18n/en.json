@@ -7,6 +7,10 @@
     "loadCharacterDialog": {
       "heading": "Load a different character"
     },
+    "preferences": "Preferences",
+    "preferencesDialog": {
+      "heading": "Preferences"
+    },
     "section": {
       "characteristics": "Characteristics",
       "palette": "Palette",
@@ -15,6 +19,10 @@
       "inGamePreview": "In-game preview",
       "specialMoves": "Special Moves"
     }
+  },
+  "preferences": {
+    "beginnerModeLabel": "Beginner mode",
+    "beginnerModeHint": "Show explanations for MUGEN/Ikemen terms across the app."
   },
   "fileInput": {
     "label": "Select a character folder (containing its .def file, e.g. kfm.def)",
@@ -46,13 +54,17 @@
     "soundFileLabel": "Sound file",
     "commandFileLabel": "Command file",
     "constantsFileLabel": "Constants file",
-    "stateFileLabel": "State file"
+    "stateFileLabel": "State file",
+    "tooltipStatedefLabel": "What is a Statedef?",
+    "tooltipStatedefText": "A named mode of the character's behavior — standing, an attack, a hit reaction…"
   },
   "spriteBrowser": {
     "heading": "Sprites ({{count}})",
     "empty": "No sprites found.",
     "groupToggle": "Group {{index}} ({{count}})",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "tooltipGroupLabel": "What is a sprite group?",
+    "tooltipGroupText": "Sprites sharing the same group index in the .sff sheet."
   },
   "palettePicker": {
     "heading": "Palette",
@@ -65,7 +77,9 @@
     "statusUsingOwn": "Using each sprite's own palette.",
     "statusActiveOverride": "Active palette override: {{fileName}}.",
     "statusChecking": "Checking…",
-    "errorReadFile": "Could not read the selected file."
+    "errorReadFile": "Could not read the selected file.",
+    "tooltipOverrideLabel": "What is a palette override?",
+    "tooltipOverrideText": "An external color table (.act file) you upload, applied to every sprite in place of the character's own colors."
   },
   "animationPlayer": {
     "heading": "Animation Player",
@@ -80,7 +94,9 @@
     "play": "Play",
     "pause": "Pause",
     "blankFrame": "Blank frame (no sprite for this frame).",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "tooltipClsnLabel": "What are collision boxes?",
+    "tooltipClsnText": "Attack (red) and vulnerability (blue) collision boxes for the current frame."
   },
   "gifExport": {
     "exportGifButton": "Export GIF",

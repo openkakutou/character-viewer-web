@@ -4,7 +4,18 @@
 // right after a character finishes loading — no tab/sidebar navigation
 // yet, see .vibe/decisions/005-characteristics-panel-inline-no-tab-navigation-yet.md.
 import { t } from "../i18n/i18n.ts";
+import { createInfoTooltip } from "../preferences/info-tooltip.ts";
 import type { CharacterData } from "../wasm/types.ts";
+
+/**
+ * `renderCharacteristicsPanel` has no state/subscription of its own beyond
+ * the beginner-mode tooltip (backlog item 022) -- torn down at the top of
+ * every call, before a fresh one is made, so a previous call's subscription
+ * never accumulates. Every other locale/character-driven redraw in this app
+ * already needs this same "torn down at top of render" shape; see
+ * .vibe/decisions/019-i18n-integration-approach.md.
+ */
+let currentDestroyStatedefTooltip: (() => void) | undefined;
 
 /**
  * Renders the characteristics panel into `root`, replacing its previous
@@ -16,6 +27,8 @@ export function renderCharacteristicsPanel(
   root: HTMLElement,
   character: CharacterData | null,
 ): void {
+  currentDestroyStatedefTooltip?.();
+  currentDestroyStatedefTooltip = undefined;
   root.replaceChildren();
   if (character === null) return;
 
@@ -75,6 +88,27 @@ export function renderCharacteristicsPanel(
     },
   );
   statesSection.appendChild(heading);
+
+  // Beginner-mode tooltip (backlog item 022): explains "Statedef" -- a
+  // direct child of the heading rather than a new wrapping element, so
+  // there is no extra block box for the browser's real flex layout to
+  // round differently (an earlier wrapping-`<div>` version shifted this
+  // panel's overall height by a real, if sub-pixel, amount, caught only via
+  // real-browser visual-regression verification, never jsdom). `heading`
+  // itself becomes the flex row (`.characteristics-panel__states h3` in
+  // style.css) so the icon aligns beside the text without inflating the
+  // line's own height; it takes zero space while `hidden` regardless. Torn
+  // down (unsubscribed) at the top of every future call to this function,
+  // see currentDestroyStatedefTooltip above.
+  const statedefTooltip = createInfoTooltip(
+    t(
+      "characteristicsPanel.tooltipStatedefText",
+      "A named mode of the character's behavior — standing, an attack, a hit reaction…",
+    ),
+    t("characteristicsPanel.tooltipStatedefLabel", "What is a Statedef?"),
+  );
+  currentDestroyStatedefTooltip = statedefTooltip.destroy;
+  heading.appendChild(statedefTooltip.element);
 
   if (sortedStateNumbers.length === 0) {
     const empty = document.createElement("p");

@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  resetPreferencesForTests,
+  setBeginnerMode,
+} from "../preferences/preferences.ts";
 import type {
   Animation,
   CharacterData,
@@ -260,5 +264,59 @@ describe("renderCharacteristicsPanel", () => {
       root.querySelectorAll(".characteristics-panel__files-item"),
     ).map((el) => el.textContent);
     expect(entries).toEqual(["Sprite file: kfm.sff", "Sound file: kfm.snd"]);
+  });
+
+  describe("beginner-mode Statedef tooltip (backlog item 022)", () => {
+    afterEach(() => {
+      resetPreferencesForTests();
+    });
+
+    it("keeps the info icon next to the States heading hidden when beginner mode is off", () => {
+      const root = document.createElement("div");
+      renderCharacteristicsPanel(root, characterWith({}));
+
+      const tooltip = root.querySelector<HTMLElement>(
+        ".characteristics-panel__states .info-tooltip",
+      );
+      expect(tooltip?.hidden).toBe(true);
+    });
+
+    it("shows an info icon explaining Statedef next to the States heading when beginner mode is on", () => {
+      setBeginnerMode(true);
+      const root = document.createElement("div");
+      renderCharacteristicsPanel(root, characterWith({}));
+
+      const tooltip = root.querySelector<HTMLElement>(
+        ".characteristics-panel__states .info-tooltip",
+      );
+      expect(tooltip?.hidden).toBe(false);
+      expect(tooltip?.textContent).toContain(
+        "A named mode of the character's behavior",
+      );
+    });
+
+    it("reacts to beginner mode being turned on after the panel was already rendered", () => {
+      const root = document.createElement("div");
+      renderCharacteristicsPanel(root, characterWith({}));
+
+      setBeginnerMode(true);
+
+      expect(
+        root.querySelector<HTMLElement>(
+          ".characteristics-panel__states .info-tooltip",
+        )?.hidden,
+      ).toBe(false);
+    });
+
+    it("does not leak a stale subscription across repeated renders", () => {
+      const root = document.createElement("div");
+      renderCharacteristicsPanel(root, characterWith({}));
+      renderCharacteristicsPanel(root, characterWith({})); // re-render, as a character switch would
+
+      setBeginnerMode(true);
+
+      const tooltips = root.querySelectorAll(".info-tooltip");
+      expect(tooltips).toHaveLength(1);
+    });
   });
 });

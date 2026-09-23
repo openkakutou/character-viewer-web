@@ -12,6 +12,7 @@
 // player (animation-player.ts, item 007), which still uses it for its own
 // preview and is out of item 016's scope.
 import { onLocaleChange, t } from "../i18n/i18n.ts";
+import { createInfoTooltip } from "../preferences/info-tooltip.ts";
 import {
   type SpritePixelResult,
   type WasmBridgeOptions,
@@ -109,6 +110,8 @@ const noopHandle: SpriteBrowserHandle = { setPaletteOverride() {} };
  * .vibe/decisions/019-i18n-integration-approach.md.
  */
 let currentUnsubscribeLocaleChange: (() => void) | undefined;
+/** Same "torn down at top of every call" shape, for the beginner-mode tooltip's own subscription (backlog item 022). */
+let currentDestroyGroupTooltip: (() => void) | undefined;
 
 /**
  * Renders the sprite browser into `root`, replacing its previous content
@@ -124,6 +127,8 @@ export function renderSpriteBrowser(
 ): SpriteBrowserHandle {
   currentUnsubscribeLocaleChange?.();
   currentUnsubscribeLocaleChange = undefined;
+  currentDestroyGroupTooltip?.();
+  currentDestroyGroupTooltip = undefined;
   root.replaceChildren();
   if (character === null || sffBytes === null) return noopHandle;
   // Narrowed into a fresh binding: TS does not carry a parameter's narrowed
@@ -148,6 +153,26 @@ export function renderSpriteBrowser(
     count: String(totalSpriteCount),
   });
   panel.appendChild(heading);
+
+  // Beginner-mode tooltip (backlog item 022): exactly one icon explaining
+  // "group" near the heading, not one repeated on every group toggle below.
+  // A direct child of the heading rather than a new wrapping element, so
+  // there is no extra block box for the browser's real flex layout to round
+  // differently (an earlier wrapping-`<div>` version shifted this panel's
+  // overall height by a real, if sub-pixel, amount, caught only via
+  // real-browser visual-regression verification, never jsdom — it shifted
+  // the decoded sprite preview below by 1px). `heading` itself becomes the
+  // flex row (`.sprite-browser h3` in style.css). See
+  // .vibe/decisions/022-beginner-mode-tooltip-widget-and-placement.md.
+  const groupTooltip = createInfoTooltip(
+    t(
+      "spriteBrowser.tooltipGroupText",
+      "Sprites sharing the same group index in the .sff sheet.",
+    ),
+    t("spriteBrowser.tooltipGroupLabel", "What is a sprite group?"),
+  );
+  currentDestroyGroupTooltip = groupTooltip.destroy;
+  heading.appendChild(groupTooltip.element);
 
   if (totalSpriteCount === 0) {
     const empty = document.createElement("p");
@@ -288,6 +313,17 @@ export function renderSpriteBrowser(
     heading.textContent = t("spriteBrowser.heading", "Sprites ({{count}})", {
       count: String(totalSpriteCount),
     });
+    // `textContent =` above just wiped every child, including the tooltip
+    // (a direct child of `heading`, see the ADR-referencing comment above)
+    // -- re-append it before retranslating its own text/label in place.
+    heading.appendChild(groupTooltip.element);
+    groupTooltip.setText(
+      t(
+        "spriteBrowser.tooltipGroupText",
+        "Sprites sharing the same group index in the .sff sheet.",
+      ),
+      t("spriteBrowser.tooltipGroupLabel", "What is a sprite group?"),
+    );
     for (const entry of groupToggles) {
       entry.toggle.textContent = t(
         "spriteBrowser.groupToggle",

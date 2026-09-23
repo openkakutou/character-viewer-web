@@ -11,6 +11,7 @@ import {
   renderGifExportControls,
 } from "../export/gif-export.ts";
 import { onLocaleChange, t } from "../i18n/i18n.ts";
+import { createInfoTooltip } from "../preferences/info-tooltip.ts";
 import {
   type SpritePixelResult,
   type WasmBridgeOptions,
@@ -203,6 +204,8 @@ const noopHandle: AnimationPlayerHandle = {
  * .vibe/decisions/019-i18n-integration-approach.md.
  */
 let currentUnsubscribeLocaleChange: (() => void) | undefined;
+/** Same "torn down at top of every call" shape, for the beginner-mode tooltip's own subscription (backlog item 022). */
+let currentDestroyClsnTooltip: (() => void) | undefined;
 
 /**
  * Renders the animation player into `root`, replacing its previous content
@@ -218,6 +221,8 @@ export function renderAnimationPlayer(
 ): AnimationPlayerHandle {
   currentUnsubscribeLocaleChange?.();
   currentUnsubscribeLocaleChange = undefined;
+  currentDestroyClsnTooltip?.();
+  currentDestroyClsnTooltip = undefined;
   root.replaceChildren();
   if (character === null || sffBytes === null) return noopHandle;
   // Narrowed into a fresh binding: TS does not carry a parameter's narrowed
@@ -319,7 +324,16 @@ export function renderAnimationPlayer(
     "animationPlayer.collisionLabel",
     "Show collision boxes",
   );
-  collisionWrapper.append(collisionInput, collisionLabel);
+  // Beginner-mode tooltip (backlog item 022): explains Clsn1/Clsn2.
+  const clsnTooltip = createInfoTooltip(
+    t(
+      "animationPlayer.tooltipClsnText",
+      "Attack (red) and vulnerability (blue) collision boxes for the current frame.",
+    ),
+    t("animationPlayer.tooltipClsnLabel", "What are collision boxes?"),
+  );
+  currentDestroyClsnTooltip = clsnTooltip.destroy;
+  collisionWrapper.append(collisionInput, collisionLabel, clsnTooltip.element);
 
   const frameCounter = document.createElement("p");
   frameCounter.className = "animation-player__frame-counter";
@@ -603,6 +617,13 @@ export function renderAnimationPlayer(
     collisionLabel.textContent = t(
       "animationPlayer.collisionLabel",
       "Show collision boxes",
+    );
+    clsnTooltip.setText(
+      t(
+        "animationPlayer.tooltipClsnText",
+        "Attack (red) and vulnerability (blue) collision boxes for the current frame.",
+      ),
+      t("animationPlayer.tooltipClsnLabel", "What are collision boxes?"),
     );
     updatePlayPauseButton();
     updateFrameCounter();

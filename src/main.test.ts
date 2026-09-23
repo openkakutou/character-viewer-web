@@ -141,7 +141,10 @@ describe("renderApp — end-to-end character load", () => {
     // mounted (though hidden behind Characteristics) as soon as the
     // workspace shell exists.
     expect(root.querySelector(".sprite-browser")).not.toBeNull();
-    expect(root.querySelector(".sprite-browser h3")?.textContent).toBe(
+    // .toContain, not .toBe: the heading also hosts a beginner-mode info
+    // icon (backlog item 022), off by default but still a real (hidden)
+    // DOM descendant, so its own text is part of textContent regardless.
+    expect(root.querySelector(".sprite-browser h3")?.textContent).toContain(
       "Sprites (1)",
     );
 

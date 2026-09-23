@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- A "Preferences" icon in the toolbar opens a popup with a "Beginner mode" toggle, off by default. Turning it on shows a small info icon next to MUGEN/Ikemen vocabulary (Statedef, palette overrides, sprite groups, collision boxes) across the Characteristics, Palette, Sprites, and Animation sections — hovering or keyboard-focusing an icon reveals a short plain-language explanation. Turning it off hides every icon again immediately, with no other visual change. The setting stays as you left it for the rest of your session, including after switching sections or loading a different character.
+
 ## [0.17.0] - 2026-09-23
 
 ### Added

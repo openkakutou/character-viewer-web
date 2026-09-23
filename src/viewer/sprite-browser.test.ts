@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  resetPreferencesForTests,
+  setBeginnerMode,
+} from "../preferences/preferences.ts";
 import type { SpritePixelResult } from "../wasm/bridge.ts";
 import type { CharacterData } from "../wasm/types.ts";
 import { computeScaleToFit, renderSpriteBrowser } from "./sprite-browser.ts";
@@ -369,6 +373,41 @@ describe("renderSpriteBrowser", () => {
     renderSpriteBrowser(root, characterWithSprites(), sffBytes);
     renderSpriteBrowser(root, null, null);
     expect(root.children).toHaveLength(0);
+  });
+
+  describe("beginner-mode group tooltip (backlog item 022)", () => {
+    afterEach(() => {
+      resetPreferencesForTests();
+    });
+
+    it("keeps the info icon hidden when beginner mode is off", () => {
+      const root = document.createElement("div");
+      renderSpriteBrowser(root, characterWithSprites(), sffBytes);
+
+      expect(root.querySelector<HTMLElement>(".info-tooltip")?.hidden).toBe(
+        true,
+      );
+    });
+
+    it("shows exactly one info icon near the heading, explaining a sprite group, when beginner mode is on", () => {
+      setBeginnerMode(true);
+      const root = document.createElement("div");
+      renderSpriteBrowser(root, characterWithSprites(), sffBytes);
+
+      const tooltips = root.querySelectorAll(".info-tooltip");
+      expect(tooltips).toHaveLength(1);
+      expect(tooltips[0].textContent).toContain("same group index");
+    });
+
+    it("does not leak a stale subscription across repeated renders", () => {
+      const root = document.createElement("div");
+      renderSpriteBrowser(root, characterWithSprites(), sffBytes);
+      renderSpriteBrowser(root, characterWithSprites(), sffBytes);
+
+      setBeginnerMode(true);
+
+      expect(root.querySelectorAll(".info-tooltip")).toHaveLength(1);
+    });
   });
 });
 

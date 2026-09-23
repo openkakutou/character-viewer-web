@@ -1,0 +1,13 @@
+---
+date: 2026-09-23
+status: accepted
+---
+# Beginner-mode info-tooltip: custom widget, fixed positioning, one icon per section
+
+**Context:** Backlog item 022 needs a "beginner mode" that shows an info icon with an on-hover/focus explanation next to a handful of MUGEN/Ikemen terms across four existing sections, plus a "Beginner mode" toggle in a new Preferences popup. Neither a tooltip component nor a switch/toggle component exists yet in `@openkakutou/web-ui-kit`.
+
+**Decision:** Build a small, from-scratch, reusable info-icon + tooltip-bubble widget (`src/preferences/info-tooltip.ts`) styled only with `--wuik-*` tokens, positioned with `position: fixed` (computed from the trigger's `getBoundingClientRect()` via a pure, independently-testable placement function) rather than `position: absolute`. Reuse the existing plain `<input type="checkbox">` + `<label>` pattern already used for "Loop"/"Show collision boxes" for the "Beginner mode" toggle itself, rather than inventing a fake switch control. The sprite browser section gets exactly one info icon near its "Sprites (N)" heading explaining "group", not one repeated next to every individual group toggle.
+
+**Reason:** `position: fixed` avoids the tooltip being silently clipped by the sections' own `overflow-y: auto` scroll containers (confirmed as a real risk by both the UI/UX and frontend-design expert consultations) — an `absolute`-positioned bubble near the bottom of a scrollable section would render half-hidden. The placement math is factored into a pure function so it stays unit-testable despite depending on real layout measurements only available in a browser. Reusing the checkbox+label pattern avoids building a second bespoke control (a fake switch with a thumb/track illusion) for a single on/off setting used in one screen. Repeating the "group" explanation on every group toggle would inject one extra focusable element and one extra `aria-describedby` target per group — a real keyboard-navigation and screen-reader-verbosity cost on a character with many groups — for an identical, already-generalizable explanation; both consulted experts independently converged on one icon per section instead.
+
+**Rejected alternatives:** An `absolute`-positioned bubble nested in each section's own scroll container (simpler, but clips near scrolled edges). A dedicated `<wuik-switch>`-style control built just for this one toggle (adds a whole new design-system-shaped component for a single boolean setting, currently used nowhere else). One info icon per sprite-browser group toggle, literally matching the backlog item's per-screen tooltip note (rejected for the keyboard/AT verbosity cost above).

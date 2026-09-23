@@ -29,6 +29,8 @@ flowchart LR
     app --> i18n["i18n\n(src/i18n/)"]
     shell --> i18n
     i18n -.->|shared integration layer| wuik["@openkakutou/web-ui-kit"]
+    shell --> preferences["preferences\n(src/preferences/)"]
+    viewer --> preferences
 
     style module stroke-dasharray: 5 5
 ```
@@ -67,7 +69,10 @@ flowchart LR
   without ever recreating `<wuik-tabs>` itself — the sidebar's current
   selection is untouched, so it stays exactly where it was. Any other way of
   closing the dialog (Esc, backdrop, close button, or a failed load) leaves
-  the workspace completely unaffected.
+  the workspace completely unaffected. A "Preferences" toolbar icon (item
+  022) opens a second `<wuik-dialog>` hosting `preferences`'s "Beginner
+  mode" toggle — reused as-is across opens, since it has no per-open state
+  to reset.
 - **`input`** (`src/input/`) — the character file input: folder selection
   only (item 015) — see
   `.vibe/decisions/017-folder-only-input-def-files-parse-and-ported-resolution.md`.
@@ -139,7 +144,13 @@ flowchart LR
   (`MS_PER_TICK`, `effectiveTickDuration`, `isBlankFrame`) shared by
   playback (`animation-player.ts`) and export (`export/gif-export.ts`)
   alike, re-exported from `animation-player.ts` so every existing import
-  site keeps working unchanged.
+  site keeps working unchanged. Each of these four screens also mounts one
+  `preferences/info-tooltip.ts` icon next to its own key MUGEN/Ikemen term
+  (Statedef, palette override, sprite group, collision boxes) — a direct
+  child of that term's own heading/label, not a new wrapping element,
+  since an earlier wrapping-`<div>` attempt measurably (if sub-pixel)
+  shifted this screen's own rendered height, caught only via real-browser
+  visual-regression verification.
 - **`export`** (`src/export/`, item 014) — `gif-export.ts` builds a
   downloadable animated GIF from an already-loaded Animation, reusing the
   same resolved-sprite + palette pipeline `viewer/animation-player.ts`
@@ -184,6 +195,21 @@ flowchart LR
   (`computeScaleToFit`, `defaultDrawPixels`) rather than re-implementing
   them, and each returns the same small `{ pause() }` handle shape as the
   Animation section for `shell`'s own auto-pause-on-navigate-away.
+- **`preferences`** (`src/preferences/`, item 022) — `preferences.ts` holds
+  a single session-scoped flag, "beginner mode" (off by default, never
+  persisted to `localStorage` — it only needs to survive the rest of the
+  session, including a character switch, not a page reload), with a plain
+  subscribe/notify API mirroring `i18n`'s own `onLocaleChange`.
+  `info-tooltip.ts` builds the reusable info-icon + tooltip-bubble widget
+  each of `viewer`'s four screens mounts one of, next to a MUGEN/Ikemen
+  term: the icon and its bubble are always real DOM (never inserted/removed
+  on toggle), only `hidden` — so a screen reader's `aria-describedby`
+  association never dangles — and the bubble is positioned with
+  `position: fixed`, computed from the trigger's own
+  `getBoundingClientRect()` through a pure, unit-tested placement function,
+  so it can never be clipped by a section's own internal scrollbar.
+  `beginner-mode-toggle.ts` renders the checkbox+label+hint mounted once
+  inside `shell`'s Preferences dialog.
 - **`wasm`** (`src/wasm/`) — the bridge to the `character` WebAssembly
   module. `bridge.ts` loads `wasm_exec.js` and instantiates `character.wasm`
   client-side (both fetched from `public/wasm/`, which is gitignored — see

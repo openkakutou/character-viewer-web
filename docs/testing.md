@@ -220,11 +220,12 @@ throughout.
 
 `npm test` (Vitest) never looks at a rendered pixel. `npm run test:visual`
 (`playwright.config.ts`, specs under `tests/visual/`) is a separate suite
-that does, covering this app's three real rendered surfaces — the sprite
+that does, covering this app's real rendered surfaces — the sprite
 browser's decoded sprite preview, the animation player's Clsn1/Clsn2 box
-overlay on and off, and the palette picker's live-recolored preview — the
-regression class no unit test or WASM-bridge test can catch, per the
-org-wide rationale in roadmap's
+overlay on and off, the palette picker's live-recolored preview, and (item
+022) the Preferences popup's beginner-mode tooltips — the regression class
+no unit test or WASM-bridge test can catch, per the org-wide rationale in
+roadmap's
 `.vibe/decisions/024-visual-regression-testing-via-playwright-screenshots.md`.
 
 - Extends `web-ui-kit`'s shared Playwright preset
@@ -289,3 +290,42 @@ locales. Both are fixed — the first locked in by
 `workspace-shell.test.ts`'s own dedicated regression test (waiting out
 the real WASM pipeline after closing the dialog early), the second by a
 CSS `max-width` on the dialog.
+
+## Beginner-mode tooltips (item 022)
+
+`tests/visual/preferences-tooltips.visual.spec.ts` drives the full flow
+against a real headless Chromium: opening the Preferences popup, toggling
+"Beginner mode" on, confirming an info icon's bubble opens on hover and
+independently on keyboard focus alone (asserting its bounding box stays
+fully inside the viewport, not just that a CSS class got added), dismissing
+it with Escape without losing focus, checking all four sections' icons at
+once, toggling off (every icon hidden together), and confirming the icons
+survive a character switch made through the "Load character…" popup. This
+pass caught two real bugs neither the unit-test suite nor a code read
+surfaced:
+
+- `.info-tooltip { display: inline-flex; ... }` was unconditional (not
+  scoped to `:not([hidden])`), so it had the same specificity as the
+  browser's own `[hidden] { display: none }` rule and won regardless of
+  origin priority — every icon was visible in a real browser with beginner
+  mode off, even though every jsdom unit test asserting `.hidden === true`
+  passed, since jsdom never computes cascaded styles at all. The same
+  pitfall this app's own `.workspace-shell__section` rule already
+  documented, reproduced in a new place. Fixed by scoping the rule to
+  `.info-tooltip:not([hidden])`.
+- `<wuik-dialog>`'s host element has no visible box of its own once open —
+  its shadow-internal native `<dialog>` escapes to the browser's top layer
+  via `showModal()` — so a Playwright `toBeVisible()` check on the dialog's
+  own locator (rather than its slotted content) reports `hidden` even
+  while genuinely open and interactive. Not an app bug: the spec now
+  asserts on the toggle inside the dialog instead.
+
+Merely adding a hidden sibling node to a heading (even one contributing
+zero box of its own) shifted `.sprite-browser__preview`'s screenshot
+height by 1 physical pixel in two pre-existing visual-regression
+baselines, confirmed via direct `getBoundingClientRect()` measurement to
+be a sub-pixel rounding artifact (identical CSS height, different
+fractional page-position rounding to the device-pixel grid) rather than a
+real layout change — the two baselines were regenerated
+(`npm run test:visual:update`) after visually confirming the diff was
+imperceptible.

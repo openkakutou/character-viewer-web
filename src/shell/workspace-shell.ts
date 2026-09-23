@@ -33,6 +33,7 @@ import type { SpecialMoveListHandle } from "../game-mode/special-move-list.ts";
 import { getI18n, onLocaleChange, t } from "../i18n/i18n.ts";
 import { renderCharacterFileInput } from "../input/character-file-input-view.ts";
 import type { CharacterFileInputOptions } from "../input/character-file-input.ts";
+import { renderBeginnerModeToggle } from "../preferences/beginner-mode-toggle.ts";
 import { renderAnimationPlayer } from "../viewer/animation-player.ts";
 import type { AnimationPlayerHandle } from "../viewer/animation-player.ts";
 import { renderCharacteristicsPanel } from "../viewer/characteristics-panel.ts";
@@ -193,6 +194,47 @@ export function renderWorkspaceShell(
   const loadCharacterInputContainer = document.createElement("div");
   loadCharacterDialog.appendChild(loadCharacterInputContainer);
 
+  // Preferences popup (backlog item 022): a toolbar icon opens a
+  // `<wuik-dialog>` hosting the "Beginner mode" toggle. Unlike the "Load
+  // character…" dialog, this one's content has no transient per-open state
+  // to discard, so it's rendered once here rather than fresh on every open.
+  const preferencesButton = document.createElement("wuik-button");
+  preferencesButton.className = "workspace-shell__preferences-button";
+  preferencesButton.setAttribute("variant", "secondary");
+  preferencesButton.dataset.action = "preferences";
+  const preferencesIcon = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "svg",
+  );
+  preferencesIcon.setAttribute("viewBox", "0 0 16 16");
+  preferencesIcon.setAttribute("aria-hidden", "true");
+  preferencesIcon.innerHTML =
+    '<circle cx="8" cy="8" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>' +
+    '<path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>';
+  const preferencesButtonLabel = document.createElement("span");
+  preferencesButtonLabel.className = "visually-hidden";
+  preferencesButtonLabel.textContent = t("shell.preferences", "Preferences");
+  preferencesButton.append(preferencesIcon, preferencesButtonLabel);
+
+  const preferencesDialog = document.createElement("wuik-dialog");
+  preferencesDialog.className = "workspace-shell__preferences-dialog";
+
+  const preferencesHeading = document.createElement("span");
+  preferencesHeading.slot = "heading";
+  preferencesHeading.textContent = t(
+    "shell.preferencesDialog.heading",
+    "Preferences",
+  );
+  preferencesDialog.appendChild(preferencesHeading);
+
+  const preferencesToggleContainer = document.createElement("div");
+  preferencesDialog.appendChild(preferencesToggleContainer);
+  renderBeginnerModeToggle(preferencesToggleContainer);
+
+  preferencesButton.addEventListener("click", () => {
+    preferencesDialog.toggleAttribute("open", true);
+  });
+
   const localeSwitcher = document.createElement(
     "wuik-locale-switcher",
   ) as unknown as WuikLocaleSwitcherElement;
@@ -204,6 +246,8 @@ export function renderWorkspaceShell(
     characterName,
     loadCharacterButton,
     loadCharacterDialog,
+    preferencesButton,
+    preferencesDialog,
     localeSwitcher,
   );
   shell.appendChild(toolbar);
@@ -425,6 +469,11 @@ export function renderWorkspaceShell(
     loadCharacterHeading.textContent = t(
       "shell.loadCharacterDialog.heading",
       "Load a different character",
+    );
+    preferencesButtonLabel.textContent = t("shell.preferences", "Preferences");
+    preferencesHeading.textContent = t(
+      "shell.preferencesDialog.heading",
+      "Preferences",
     );
   });
 }

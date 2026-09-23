@@ -7,6 +7,10 @@
     "loadCharacterDialog": {
       "heading": "Charger un autre personnage"
     },
+    "preferences": "Préférences",
+    "preferencesDialog": {
+      "heading": "Préférences"
+    },
     "section": {
       "characteristics": "Caractéristiques",
       "palette": "Palette",
@@ -15,6 +19,10 @@
       "inGamePreview": "Aperçu en jeu",
       "specialMoves": "Coups spéciaux"
     }
+  },
+  "preferences": {
+    "beginnerModeLabel": "Mode débutant",
+    "beginnerModeHint": "Afficher des explications pour les termes MUGEN/Ikemen dans toute l'application."
   },
   "fileInput": {
     "label": "Sélectionnez un dossier de personnage (contenant son fichier .def, par ex. kfm.def)",
@@ -46,13 +54,17 @@
     "soundFileLabel": "Fichier son",
     "commandFileLabel": "Fichier de commandes",
     "constantsFileLabel": "Fichier de constantes",
-    "stateFileLabel": "Fichier d'état"
+    "stateFileLabel": "Fichier d'état",
+    "tooltipStatedefLabel": "Qu'est-ce qu'un Statedef ?",
+    "tooltipStatedefText": "Un mode nommé du comportement du personnage — debout, une attaque, une réaction à un coup…"
   },
   "spriteBrowser": {
     "heading": "Sprites ({{count}})",
     "empty": "Aucun sprite trouvé.",
     "groupToggle": "Groupe {{index}} ({{count}})",
-    "loading": "Chargement…"
+    "loading": "Chargement…",
+    "tooltipGroupLabel": "Qu'est-ce qu'un groupe de sprites ?",
+    "tooltipGroupText": "Des sprites partageant le même index de groupe dans la feuille .sff."
   },
   "palettePicker": {
     "heading": "Palette",
@@ -65,7 +77,9 @@
     "statusUsingOwn": "Utilisation de la palette propre à chaque sprite.",
     "statusActiveOverride": "Palette de remplacement active : {{fileName}}.",
     "statusChecking": "Vérification…",
-    "errorReadFile": "Impossible de lire le fichier sélectionné."
+    "errorReadFile": "Impossible de lire le fichier sélectionné.",
+    "tooltipOverrideLabel": "Qu'est-ce qu'une palette de remplacement ?",
+    "tooltipOverrideText": "Une table de couleurs externe (fichier .act) que vous chargez, appliquée à chaque sprite à la place des couleurs propres du personnage."
   },
   "animationPlayer": {
     "heading": "Lecteur d'animation",
@@ -80,7 +94,9 @@
     "play": "Lecture",
     "pause": "Pause",
     "blankFrame": "Image vide (aucun sprite pour cette image).",
-    "loading": "Chargement…"
+    "loading": "Chargement…",
+    "tooltipClsnLabel": "Que sont les boîtes de collision ?",
+    "tooltipClsnText": "Boîtes d'attaque (rouge) et de vulnérabilité (bleu) pour l'image actuelle."
   },
   "gifExport": {
     "exportGifButton": "Exporter le GIF",

@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // behavior directly, so it needs that registration itself.
 import "@openkakutou/web-ui-kit";
 import { initAppI18n } from "../i18n/i18n.ts";
+import { resetPreferencesForTests } from "../preferences/preferences.ts";
 import { resetWasmBridgeForTests } from "../wasm/bridge.ts";
 import type { WasmBridgeOptions } from "../wasm/bridge.ts";
 import type { CharacterData } from "../wasm/types.ts";
@@ -373,6 +374,112 @@ describe("renderWorkspaceShell", () => {
 
     expect(root.querySelectorAll("wuik-app-shell")).toHaveLength(1);
     expect(root.querySelectorAll("wuik-tabs")).toHaveLength(1);
+  });
+
+  it("opens the Preferences popup showing the Beginner mode toggle, off by default", () => {
+    const root = document.createElement("div");
+    renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
+
+    const dialog = root.querySelector<HTMLElement>(
+      ".workspace-shell__preferences-dialog",
+    );
+    expect(dialog?.hasAttribute("open")).toBe(false);
+
+    root
+      .querySelector<HTMLElement>('[data-action="preferences"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(dialog?.hasAttribute("open")).toBe(true);
+    const checkbox = dialog?.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
+    );
+    expect(checkbox?.checked).toBe(false);
+    expect(dialog?.textContent).toContain("Beginner mode");
+  });
+
+  describe("Beginner-mode tooltips (backlog item 022)", () => {
+    afterEach(() => {
+      resetPreferencesForTests();
+    });
+
+    it("shows an info icon next to the States heading only once beginner mode is turned on", async () => {
+      const root = document.createElement("div");
+      document.body.appendChild(root);
+      try {
+        renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
+
+        expect(
+          root.querySelector<HTMLElement>(
+            ".characteristics-panel__states .info-tooltip",
+          )?.hidden,
+        ).toBe(true);
+
+        root
+          .querySelector<HTMLElement>('[data-action="preferences"]')
+          ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        const checkbox = root.querySelector<HTMLInputElement>(
+          'input[type="checkbox"]',
+        );
+        checkbox?.dispatchEvent(new MouseEvent("click"));
+
+        const tooltip = root.querySelector<HTMLElement>(
+          ".characteristics-panel__states .info-tooltip",
+        );
+        expect(tooltip).not.toBeNull();
+        expect(tooltip?.hidden).toBe(false);
+      } finally {
+        root.remove();
+      }
+    });
+
+    it("hides every info icon across sections again when beginner mode is turned back off", async () => {
+      const root = document.createElement("div");
+      document.body.appendChild(root);
+      try {
+        renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
+
+        root
+          .querySelector<HTMLElement>('[data-action="preferences"]')
+          ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        const checkbox = root.querySelector<HTMLInputElement>(
+          'input[type="checkbox"]',
+        );
+        checkbox?.dispatchEvent(new MouseEvent("click")); // on
+        checkbox?.dispatchEvent(new MouseEvent("click")); // off
+
+        const tooltips = root.querySelectorAll<HTMLElement>(".info-tooltip");
+        expect(tooltips.length).toBeGreaterThan(0);
+        for (const tooltip of tooltips) {
+          expect(tooltip.hidden).toBe(true);
+        }
+      } finally {
+        root.remove();
+      }
+    });
+
+    it("keeps beginner mode's info icons visible for the new character after a character switch", async () => {
+      const root = document.createElement("div");
+      document.body.appendChild(root);
+      try {
+        renderWorkspaceShell(root, "0.1.0", character(), sffBytes);
+
+        root
+          .querySelector<HTMLElement>('[data-action="preferences"]')
+          ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        root
+          .querySelector<HTMLInputElement>('input[type="checkbox"]')
+          ?.dispatchEvent(new MouseEvent("click"));
+
+        renderWorkspaceShell(root, "0.1.0", character(), sffBytes); // re-render, as a character switch would
+
+        const tooltip = root.querySelector<HTMLElement>(
+          ".characteristics-panel__states .info-tooltip",
+        );
+        expect(tooltip?.hidden).toBe(false);
+      } finally {
+        root.remove();
+      }
+    });
   });
 
   it("renders a locale switcher in the toolbar, labelled for accessibility", () => {

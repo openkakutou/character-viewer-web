@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  resetPreferencesForTests,
+  setBeginnerMode,
+} from "../preferences/preferences.ts";
 import type { SpritePixelResult } from "../wasm/bridge.ts";
 import type { CharacterData } from "../wasm/types.ts";
 import { renderPalettePicker } from "./palette-picker.ts";
@@ -246,5 +250,48 @@ describe("renderPalettePicker", () => {
 
     pickFile(uploadInput(root), file);
     await vi.waitFor(() => expect(onPaletteChange).toHaveBeenCalledTimes(2));
+  });
+
+  describe("beginner-mode palette-override tooltip (backlog item 022)", () => {
+    afterEach(() => {
+      resetPreferencesForTests();
+    });
+
+    it("keeps the info icon hidden when beginner mode is off", () => {
+      const root = document.createElement("div");
+      renderPalettePicker(root, fixtureCharacter(), sffBytes, {
+        onPaletteChange: vi.fn(),
+      });
+
+      expect(root.querySelector<HTMLElement>(".info-tooltip")?.hidden).toBe(
+        true,
+      );
+    });
+
+    it("shows an info icon explaining a palette override when beginner mode is on", () => {
+      setBeginnerMode(true);
+      const root = document.createElement("div");
+      renderPalettePicker(root, fixtureCharacter(), sffBytes, {
+        onPaletteChange: vi.fn(),
+      });
+
+      const tooltip = root.querySelector<HTMLElement>(".info-tooltip");
+      expect(tooltip?.hidden).toBe(false);
+      expect(tooltip?.textContent).toContain("external color table");
+    });
+
+    it("does not leak a stale subscription across repeated renders", () => {
+      const root = document.createElement("div");
+      renderPalettePicker(root, fixtureCharacter(), sffBytes, {
+        onPaletteChange: vi.fn(),
+      });
+      renderPalettePicker(root, fixtureCharacter(), sffBytes, {
+        onPaletteChange: vi.fn(),
+      });
+
+      setBeginnerMode(true);
+
+      expect(root.querySelectorAll(".info-tooltip")).toHaveLength(1);
+    });
   });
 });

@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  resetPreferencesForTests,
+  setBeginnerMode,
+} from "../preferences/preferences.ts";
 import type { SpritePixelResult } from "../wasm/bridge.ts";
 import type {
   Animation,
@@ -767,6 +771,56 @@ describe("renderAnimationPlayer", () => {
 
       expect(drawPixels).toHaveBeenCalledTimes(1);
       expect(resolveSpritePixels).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("beginner-mode collision-box tooltip (backlog item 022)", () => {
+    afterEach(() => {
+      resetPreferencesForTests();
+    });
+
+    function characterWithOneFrame(): CharacterData {
+      return characterWithAnimations([
+        { number: 0, frames: [frame()], loopStart: 0 },
+      ]);
+    }
+
+    it("keeps the info icon hidden when beginner mode is off", () => {
+      const root = document.createElement("div");
+      renderAnimationPlayer(root, characterWithOneFrame(), sffBytes, {
+        resolveSpritePixels: vi.fn(async () => [okResult(57, 103)]),
+      });
+
+      expect(root.querySelector<HTMLElement>(".info-tooltip")?.hidden).toBe(
+        true,
+      );
+    });
+
+    it("shows an info icon explaining collision boxes, next to the toggle, when beginner mode is on", () => {
+      setBeginnerMode(true);
+      const root = document.createElement("div");
+      renderAnimationPlayer(root, characterWithOneFrame(), sffBytes, {
+        resolveSpritePixels: vi.fn(async () => [okResult(57, 103)]),
+      });
+
+      const toggle = root.querySelector(".animation-player__collision");
+      const tooltip =
+        toggle?.parentElement?.querySelector<HTMLElement>(".info-tooltip");
+      expect(tooltip?.hidden).toBe(false);
+      expect(tooltip?.textContent).toContain("Attack (red)");
+    });
+
+    it("does not leak a stale subscription across repeated renders", () => {
+      const root = document.createElement("div");
+      const options = {
+        resolveSpritePixels: vi.fn(async () => [okResult(57, 103)]),
+      };
+      renderAnimationPlayer(root, characterWithOneFrame(), sffBytes, options);
+      renderAnimationPlayer(root, characterWithOneFrame(), sffBytes, options);
+
+      setBeginnerMode(true);
+
+      expect(root.querySelectorAll(".info-tooltip")).toHaveLength(1);
     });
   });
 });
