@@ -85,7 +85,7 @@ wuik-app-shell {
 
 .workspace-shell__character-name {
   margin-left: var(--wuik-space-3);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 /*
@@ -156,7 +156,7 @@ wuik-app-shell {
   flex-basis: 100%;
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 /*
@@ -209,7 +209,7 @@ wuik-app-shell {
 }
 
 .file-input__dropzone--dragging {
-  border-color: var(--wuik-color-accent);
+  border-color: var(--wuik-color-primary);
   background-color: var(--wuik-color-surface);
 }
 
@@ -224,7 +224,7 @@ wuik-app-shell {
 .file-input__hint {
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 /* The multi-`.def`-candidate picker: a native `<fieldset>`/`<legend>` radio
@@ -268,19 +268,19 @@ wuik-app-shell {
 .file-input__status {
   min-height: 1.2em;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .file-input__status--error {
   padding-left: var(--wuik-space-2);
   color: var(--wuik-color-text);
-  border-left: 3px solid var(--wuik-color-danger);
+  border-left: 3px solid var(--wuik-color-error);
 }
 
 .file-input__reset {
   align-self: flex-start;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
   background: none;
   border: none;
   cursor: pointer;
@@ -311,7 +311,7 @@ wuik-app-shell {
 .characteristics-panel__author {
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
   overflow-wrap: anywhere;
 }
 
@@ -332,7 +332,7 @@ wuik-app-shell {
 
 .characteristics-panel__stat dt {
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .characteristics-panel__stat dd {
@@ -362,7 +362,7 @@ wuik-app-shell {
 
 .characteristics-panel__states-empty {
   margin: 0;
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .characteristics-panel__states-list {
@@ -397,7 +397,7 @@ wuik-app-shell {
   gap: var(--wuik-space-1);
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .characteristics-panel__files-item {
@@ -430,7 +430,7 @@ wuik-app-shell {
 
 .sprite-browser__empty {
   margin: 0;
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .sprite-browser__body {
@@ -484,7 +484,7 @@ wuik-app-shell {
 
 .sprite-browser__sprite[aria-current="true"] {
   background-color: var(--wuik-color-surface);
-  border-color: var(--wuik-color-accent);
+  border-color: var(--wuik-color-primary);
   font-weight: var(--wuik-font-weight-medium);
 }
 
@@ -513,7 +513,7 @@ wuik-app-shell {
   min-height: 1.2em;
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .sprite-browser__preview-status--error {
@@ -540,7 +540,7 @@ wuik-app-shell {
 
 .animation-player__empty {
   margin: 0;
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .animation-player__controls {
@@ -560,7 +560,7 @@ wuik-app-shell {
   margin: 0 0 0 auto;
   font-family: var(--wuik-font-family-mono);
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .animation-player__stage {
@@ -581,7 +581,7 @@ wuik-app-shell {
   min-height: 1.2em;
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .animation-player__preview-status--error {
@@ -625,9 +625,9 @@ wuik-app-shell {
 }
 
 .animation-player__export-gif {
-  color: var(--wuik-color-text-on-accent);
-  background-color: var(--wuik-color-accent);
-  border: 1px solid var(--wuik-color-accent);
+  color: var(--wuik-color-on-primary);
+  background-color: var(--wuik-color-primary);
+  border: 1px solid var(--wuik-color-primary);
 }
 
 .animation-player__export-stand {
@@ -640,7 +640,7 @@ wuik-app-shell {
   min-height: 1.2em;
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .animation-player__export-status--error {
@@ -664,7 +664,7 @@ wuik-app-shell {
 
 .animation-triggers__empty {
   margin: 0;
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .animation-triggers__body {
@@ -707,7 +707,7 @@ wuik-app-shell {
 
 .animation-triggers__trigger[aria-pressed="true"] {
   background-color: var(--wuik-color-surface);
-  border-color: var(--wuik-color-accent);
+  border-color: var(--wuik-color-primary);
   font-weight: var(--wuik-font-weight-medium);
 }
 
@@ -742,7 +742,7 @@ wuik-app-shell {
   min-height: 1.2em;
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .animation-triggers__status--error {
@@ -771,7 +771,7 @@ wuik-app-shell {
 
 .special-move-list__empty {
   margin: 0;
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .special-move-list__body {
@@ -818,14 +818,14 @@ wuik-app-shell {
 
 .special-move-list__trigger[aria-pressed="true"] {
   background-color: var(--wuik-color-surface);
-  border-color: var(--wuik-color-accent);
+  border-color: var(--wuik-color-primary);
   font-weight: var(--wuik-font-weight-medium);
 }
 
 .special-move-list__hint {
   font-size: var(--wuik-font-size-sm);
   font-style: italic;
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .special-move-list__preview {
@@ -859,7 +859,7 @@ wuik-app-shell {
   min-height: 1.2em;
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .special-move-list__status--error {
@@ -887,7 +887,7 @@ wuik-app-shell {
 .palette-picker__referenced {
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .palette-picker__upload-row {
@@ -903,7 +903,7 @@ wuik-app-shell {
   min-height: 1.2em;
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 /*
@@ -942,17 +942,17 @@ wuik-app-shell {
   border: none;
   border-radius: 50%;
   background: none;
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
   cursor: pointer;
 }
 
 .info-tooltip__trigger:hover,
 .info-tooltip__trigger:focus-visible {
-  color: var(--wuik-color-accent);
+  color: var(--wuik-color-primary);
 }
 
 .info-tooltip__trigger:focus-visible {
-  outline: 2px solid var(--wuik-color-focus-ring);
+  outline: 2px solid var(--wuik-color-focus);
   outline-offset: 2px;
 }
 

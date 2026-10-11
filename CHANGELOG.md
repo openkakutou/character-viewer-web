@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Moved to the redesigned shared look (web-ui-kit 0.17, "Studio": dark by default, new colour tokens, 14 px text and 34 px controls).
+
 ## [0.18.0] - 2026-09-23
 
 ### Added
