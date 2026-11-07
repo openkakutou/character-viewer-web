@@ -26,6 +26,10 @@ The published JSON contract (`OpenKakutouCharacter.load`) currently exposes spri
 
 **This repo's backlog was blocked** on `character`'s real-world file compatibility fixes (its items `042`–`051`) — real community character files routinely failed to load (e.g. `cns: line N: malformed section header "..."` on a missing `]`, ~15% of a 717-file corpus) before any viewer feature even ran. As of `character` `v0.7.0` (which includes all of `042`–`051`) and the WASM pin bump above, the block is lifted — new backlog items may resume. See `roadmap`'s `.vibe/decisions/017-character-viewer-web-backlog-blocked-on-character-real-world-compat-fixes.md` for the full rationale and unblock condition.
 
+## Compatibility target (MUST) <!-- keep -->
+
+Every feature and fix touching MUGEN/Ikemen GO formats or behavior must be compatible with **both MUGEN 1.0/1.1 and Ikemen GO**, extensions included, and validated against real community files — never MUGEN-only, never from memory. Where the two engines diverge, record the divergence and the chosen behavior in an ADR, and ground engine-behavior claims in a source (fixture, doc, engine source), marking anything unverified. This is an org-wide rule (`roadmap/repos.md`), already settled: do not ask the user whether it applies, and carry it as a 🔒 MUST in every need framing, implementer prompt and review.
+
 ## Architecture
 
 Early scaffold stage — only the build setup and an entry point exist so far.
