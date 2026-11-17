@@ -12,4 +12,4 @@ CLAUDE.md lists src/wasm, src/viewer and src/game-mode as planned although they 
 - [ ] /vibe:sync runs clean
 
 ## Notes
-Same drift already tracked in stage (018), web-ui-kit (034) and mode-quick-versus (026).
+Same drift already tracked in stage (018), web-ui-kit (034) and game (026).

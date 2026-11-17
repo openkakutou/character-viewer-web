@@ -10,7 +10,7 @@
  * asserting plain English text without every test file bootstrapping i18n
  * itself. Ported from the six sibling repos' own identical `src/i18n/i18n.ts`
  * (`stage-viewer-web`, `stage-editor`, `lifebar-viewer-web`, `lifebar-editor`,
- * `character-editor`, `mode-quick-versus`).
+ * `character-editor`, `game`).
  */
 import {
   type I18nInstance,
