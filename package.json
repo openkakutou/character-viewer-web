@@ -28,7 +28,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@openkakutou/web-ui-kit": "^0.17.0",
+    "@openkakutou/web-ui-kit": "^0.23.1",
     "gifenc": "^1.0.3"
   }
 }
